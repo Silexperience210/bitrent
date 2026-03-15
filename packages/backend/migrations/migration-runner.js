@@ -5,18 +5,25 @@
  * Usage: node migrations/migration-runner.js [up|down|status|reset]
  */
 
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
 
+// Load environment variables from .env
+dotenv.config({ path: '.env' });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const MIGRATIONS_DIR = __dirname;
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required');
+  console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required');
   process.exit(1);
 }
 

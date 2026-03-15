@@ -14,15 +14,16 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.4",
-    "jsonwebtoken": "^9.1.2",
-    "uuid": "^9.0.0",
-    "nostr-tools": "^1.14.2"
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^16.6.1",
+    "jsonwebtoken": "^9.0.0",
+    "nostr-tools": "^1.14.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
     "jest": "^29.7.0",
     "supertest": "^6.3.3",
-    "@playwright/test": "^1.40.1",
     "vercel": "^33.0.0"
   },
   "engines": {

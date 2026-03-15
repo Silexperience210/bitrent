@@ -1,0 +1,32 @@
+{
+  "name": "bitrent-backend",
+  "version": "2.0.0",
+  "description": "BitRent - Bitcoin Mining Rental Platform Backend (Vercel API Routes)",
+  "main": "api/health.js",
+  "type": "module",
+  "scripts": {
+    "start": "vercel dev",
+    "build": "vercel build",
+    "dev": "NODE_ENV=development vercel dev",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4",
+    "jsonwebtoken": "^9.1.2",
+    "uuid": "^9.0.0",
+    "nostr-tools": "^1.14.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "@playwright/test": "^1.40.1",
+    "vercel": "^33.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

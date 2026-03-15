@@ -1,0 +1,58 @@
+<!-- Nostr Login Modal -->
+<div id="login-modal" class="login-modal" style="display: none;">
+  <div class="login-modal-content">
+    <!-- Close button -->
+    <button class="login-modal-close" onclick="NostrAuth.closeLoginModal()">×</button>
+
+    <!-- Modal header -->
+    <div class="login-modal-header">
+      <h2>Login with Nostr</h2>
+      <p>Choose your wallet to sign in</p>
+    </div>
+
+    <!-- Status messages -->
+    <div id="login-status" class="login-status" style="display: none;"></div>
+    <div id="login-error" class="login-error" style="display: none;"></div>
+    <div id="login-success" class="login-success" style="display: none;"></div>
+
+    <!-- Wallet options -->
+    <div class="login-modal-wallets">
+      <button class="wallet-option" data-wallet="alby">
+        <span class="wallet-icon">₿</span>
+        <span class="wallet-name">Alby Wallet</span>
+        <span class="wallet-desc">Browser Extension</span>
+      </button>
+
+      <button class="wallet-option" data-wallet="nip07">
+        <span class="wallet-icon">⚡</span>
+        <span class="wallet-name">Nostr Extension</span>
+        <span class="wallet-desc">Any NIP-07 Extension</span>
+      </button>
+
+      <button class="wallet-option" data-wallet="amber" disabled>
+        <span class="wallet-icon">📱</span>
+        <span class="wallet-name">Amber</span>
+        <span class="wallet-desc">Coming Soon</span>
+      </button>
+    </div>
+
+    <!-- Info section -->
+    <div class="login-modal-info">
+      <h3>What is Nostr?</h3>
+      <p>
+        Nostr is an open protocol for decentralized social networks. 
+        BitRent uses Nostr signatures to authenticate users securely without passwords.
+      </p>
+      <a href="https://nostr.how/" target="_blank">Learn more about Nostr →</a>
+    </div>
+
+    <!-- Security note -->
+    <div class="login-modal-security">
+      <p class="security-icon">🔒</p>
+      <p>Your private key never leaves your wallet. We only verify your signature.</p>
+    </div>
+  </div>
+
+  <!-- Overlay (for closing modal) -->
+  <div class="login-modal-overlay" onclick="NostrAuth.closeLoginModal()"></div>
+</div>

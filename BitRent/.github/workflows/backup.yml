@@ -1,0 +1,200 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Weekly full backup on Monday at 3 AM UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to backup'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    name: Backup ${{ github.event.inputs.environment || 'all environments' }}
+    
+    strategy:
+      matrix:
+        environment: ${{ github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', github.event.inputs.environment)) || fromJson('["staging", "production"]') }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: eu-west-1
+      
+      - name: Create database backup
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          chmod +x ./scripts/backup-database.sh
+          ./scripts/backup-database.sh $ENVIRONMENT
+        secrets:
+          DATABASE_URL: ${{ secrets[format('DATABASE_URL_{0}', matrix.environment)] }}
+          SUPABASE_URL: ${{ secrets[format('SUPABASE_URL_{0}', matrix.environment)] }}
+          SUPABASE_ANON_KEY: ${{ secrets[format('SUPABASE_ANON_KEY_{0}', matrix.environment)] }}
+      
+      - name: Upload to S3
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          aws s3 sync ./backups/database/ \
+            s3://bitrent-backups/$ENVIRONMENT/ \
+            --delete \
+            --sse AES256
+      
+      - name: List backups
+        run: |
+          aws s3 ls s3://bitrent-backups/ --recursive
+      
+      - name: Verify backup integrity
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          BACKUP_FILE=$(ls -t ./backups/database/${ENVIRONMENT}_backup_*.sql.gz 2>/dev/null | head -1)
+          
+          if [ -z "$BACKUP_FILE" ]; then
+            echo "No backup file found"
+            exit 1
+          fi
+          
+          FILE_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+          echo "Backup file: $BACKUP_FILE"
+          echo "Size: $FILE_SIZE"
+          
+          # Verify gzip integrity
+          gzip -t "$BACKUP_FILE" || {
+            echo "Backup file is corrupted!"
+            exit 1
+          }
+          
+          echo "Backup integrity verified ✓"
+      
+      - name: Cleanup old local backups
+        run: |
+          find ./backups/database -name "*_backup_*.sql.gz" -mtime +7 -delete
+      
+      - name: Cleanup old S3 backups (keep 30 days)
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          CUTOFF_DATE=$(date -u -d "30 days ago" +%Y-%m-%d)
+          
+          aws s3api list-objects-v2 \
+            --bucket bitrent-backups \
+            --prefix "$ENVIRONMENT/" \
+            --query "Contents[?LastModified<='$CUTOFF_DATE'].Key" \
+            --output text | \
+          while read -r key; do
+            if [ -n "$key" ]; then
+              aws s3 rm "s3://bitrent-backups/$key"
+            fi
+          done
+      
+      - name: Send backup notification to Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Database backup ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Database Backup ${{ job.status | upper }}*\nEnvironment: `${{ matrix.environment }}`\nTime: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                  }
+                }
+              ]
+            }
+
+  # Test restore capability monthly
+  test-restore:
+    needs: backup
+    runs-on: ubuntu-latest
+    name: Test Backup Restoration
+    if: github.event.schedule == '0 3 * * 1'  # Run on weekly backup day
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bitrent
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: bitrent_restore_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: eu-west-1
+      
+      - name: Download latest backup from S3
+        run: |
+          aws s3 cp \
+            $(aws s3 ls s3://bitrent-backups/staging/ --recursive | sort | tail -1 | awk '{print "s3://bitrent-backups/" $4}') \
+            ./test-backup.sql.gz
+      
+      - name: Restore backup
+        env:
+          DATABASE_URL: postgresql://bitrent:test_password@localhost:5432/bitrent_restore_test
+        run: |
+          gunzip -c ./test-backup.sql.gz | psql "$DATABASE_URL" || {
+            echo "Restore failed"
+            exit 1
+          }
+      
+      - name: Verify restored data
+        env:
+          DATABASE_URL: postgresql://bitrent:test_password@localhost:5432/bitrent_restore_test
+        run: |
+          TABLE_COUNT=$(psql "$DATABASE_URL" -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
+          echo "Restored database contains $TABLE_COUNT tables"
+          
+          if [ "$TABLE_COUNT" -lt 5 ]; then
+            echo "Restored database appears incomplete!"
+            exit 1
+          fi
+      
+      - name: Notify Slack (Restore test)
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Backup restore test ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Backup Restore Test ${{ job.status | upper }}*\nTables restored: $TABLE_COUNT"
+                  }
+                }
+              ]
+            }

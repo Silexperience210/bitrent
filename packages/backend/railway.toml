@@ -1,0 +1,44 @@
+# Railway.app Configuration for BitRent Phase 5
+# Production-grade deployment setup
+
+[build]
+builder = "nixpacks"
+# Skip build cache to ensure fresh dependencies
+disableBuildCache = false
+
+[deploy]
+# Production deployment settings
+restartPolicyType = "always"
+restartPolicyMaxRetries = 5
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckInterval = 30
+healthcheckTimeout = 10
+
+[environments]
+# Production environment
+production = {
+  variables = {
+    NODE_ENV = "production",
+    LOG_LEVEL = "info",
+    ENABLE_MONITORING = "true"
+  }
+}
+
+# Staging environment
+staging = {
+  variables = {
+    NODE_ENV = "staging",
+    LOG_LEVEL = "debug",
+    ENABLE_MONITORING = "true"
+  }
+}
+
+# Development environment
+development = {
+  variables = {
+    NODE_ENV = "development",
+    LOG_LEVEL = "debug",
+    ENABLE_MONITORING = "false"
+  }
+}

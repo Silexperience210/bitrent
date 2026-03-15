@@ -1,0 +1,31 @@
+{
+  "name": "bitrent",
+  "version": "1.0.0",
+  "description": "BitRent - Bitaxe Mining Rental Platform with Nostr Auth & Lightning Payments",
+  "private": true,
+  "workspaces": [
+    "packages/frontend",
+    "packages/backend"
+  ],
+  "scripts": {
+    "install-all": "npm install",
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "frontend": "npm run dev --workspace=packages/frontend",
+    "backend": "npm run dev --workspace=packages/backend",
+    "migrations:up": "npm run migrations:up --workspace=packages/backend",
+    "migrations:down": "npm run migrations:down --workspace=packages/backend"
+  },
+  "keywords": [
+    "bitcoin",
+    "mining",
+    "bitaxe",
+    "nostr",
+    "lightning",
+    "rental"
+  ],
+  "author": "Silexperience210",
+  "license": "MIT"
+}

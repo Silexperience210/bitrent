@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitaxe Renting - Admin Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f1419;
+            color: #e0e6ed;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00d4ff;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+
+        .header-info {
+            font-size: 0.9em;
+            color: #a0aec0;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #1e293b;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: #1a1f2e;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            font-size: 1em;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            color: #00d4ff;
+        }
+
+        .tab-button.active {
+            color: #00d4ff;
+            border-bottom-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .miners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .miner-card {
+            background: #16213e;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .miner-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .miner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .miner-name {
+            font-size: 1.2em;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-libre {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-loue {
+            background: #f97316;
+            color: white;
+        }
+
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .miner-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: #7c3aed;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            color: #e0e6ed;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .miner-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        button:hover {
+            background: #6d28d9;
+            transform: translateY(-2px);
+        }
+
+        button.secondary {
+            background: #374151;
+        }
+
+        button.secondary:hover {
+            background: #4b5563;
+        }
+
+        button.danger {
+            background: #ef4444;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #a0aec0;
+            font-size: 0.9em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0f1419;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            color: #e0e6ed;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #0f1419;
+            padding: 12px;
+            text-align: left;
+            color: #00d4ff;
+            font-weight: bold;
+            border-bottom: 2px solid #2d3748;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #a0aec0;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1f2e;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #a0aec0;
+            font-size: 2em;
+            cursor: pointer;
+            width: auto;
+            padding: 0;
+        }
+
+        .modal-close:hover {
+            color: #00d4ff;
+        }
+
+        .success-message {
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #ef4444;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .info-message {
+            background: #3b82f6;
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-demo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .toggle-demo:hover {
+            background: #6d28d9;
+            box-shadow: 0 4px 30px rgba(124, 58, 237, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .miners-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                gap: 5px;
+            }
+
+            .tab-button {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>⚡ Bitaxe Renting Hub - Admin</h1>
+            <div class="header-info">
+                <span id="current-time"></span> | Mode: <span id="mode-indicator">DÉMO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('mineurs')">Mineurs</button>
+            <button class="tab-button" onclick="switchTab('locations')">Locations Actives</button>
+            <button class="tab-button" onclick="switchTab('historique')">Historique</button>
+            <button class="tab-button" onclick="switchTab('stats')">Statistiques</button>
+            <button class="tab-button" onclick="switchTab('parametres')">Paramètres</button>
+        </div>
+
+        <!-- TAB: MINEURS -->
+        <div id="mineurs" class="tab-content active">
+            <div class="card">
+                <h2>Gestion des Mineurs</h2>
+                <button onclick="openAddMinerModal()" style="width: auto; margin-bottom: 20px;">+ Ajouter un Mineur</button>
+                <div id="miners-list" class="miners-grid"></div>
+            </div>
+        </div>
+
+        <!-- TAB: LOCATIONS ACTIVES -->
+        <div id="locations" class="tab-content">
+            <div class="card">
+                <h2>Locations en Cours</h2>
+                <div id="active-rentals" style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mineur</th>
+                                <th>Client (Nostr)</th>
+                                <th>Démarrage</th>
+                                <th>Fin</th>
+                                <th>Durée (min)</th>
+                                <th>Sats/min</th>
+                                <th>Total (Sats)</th>
+                                <th>Temps Restant</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="active-rentals-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: HISTORIQUE -->
+        <div id="historique" class="tab-content">
+            <div class="card">
+                <h2>Historique des Locations</h2>
+                <div style="margin-bottom: 20px;">
+                    <label>Filtrer par mineur:</label>
+                    <select id="history-filter" onchange="updateHistoryTable()" style="max-width: 300px;">
+                        <option value="">Tous les mineurs</option>
+                    </select>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mineur</th>
+                                <th>Client</th>
+                                <th>Date Début</th>
+                                <th>Date Fin</th>
+                                <th>Durée (min)</th>
+                                <th>Montant (Sats)</th>
+                                <th>Gains (Sats)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Revenu par Jour (30 derniers jours)</h2>
+                <div class="chart-container">
+                    <canvas id="daily-revenue-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Revenu par Mineur</h2>
+                <div class="chart-container">
+                    <canvas id="miner-revenue-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: STATISTIQUES -->
+        <div id="stats" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Mineurs Actifs</div>
+                    <div class="stat-value" id="stat-active-miners">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Mineurs en Location</div>
+                    <div class="stat-value" id="stat-rented-miners">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Locations Actives</div>
+                    <div class="stat-value" id="stat-active-rentals">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Revenu Aujourd'hui (Sats)</div>
+                    <div class="stat-value" id="stat-today-revenue">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Revenu Total (Sats)</div>
+                    <div class="stat-value" id="stat-total-revenue">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Taux Utilisation Moyen</div>
+                    <div class="stat-value" id="stat-utilization">0%</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Taux Utilisation des Mineurs</h2>
+                <div class="chart-container">
+                    <canvas id="utilization-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: PARAMETRES -->
+        <div id="parametres" class="tab-content">
+            <div class="card">
+                <h2>Configuration NWC</h2>
+                <div class="form-group">
+                    <label>NWC Connection String</label>
+                    <textarea id="nwc-connection" placeholder="nostr+walletconnect://..." style="min-height: 100px;"></textarea>
+                    <button onclick="testNWCConnection()" style="margin-top: 10px; width: auto;">Tester Connexion</button>
+                </div>
+                <div id="nwc-status" style="margin-top: 10px;"></div>
+            </div>
+
+            <div class="card">
+                <h2>Tarification</h2>
+                <div class="form-group">
+                    <label>Prix par Défaut (Sats/minute)</label>
+                    <input type="number" id="default-price" min="1" value="50">
+                    <button onclick="saveDefaultPrice()" style="margin-top: 10px; width: auto;">Enregistrer</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Historique des Paiements</h2>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Montant (Sats)</th>
+                                <th>Client</th>
+                                <th>Mineur</th>
+                                <th>Hash Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-history">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Données d'Application</h2>
+                <button onclick="exportData()" style="width: auto; margin-right: 10px;">📥 Exporter Données</button>
+                <button onclick="importData()" class="secondary" style="width: auto; margin-right: 10px;">📤 Importer Données</button>
+                <button onclick="resetData()" class="danger" style="width: auto;">🗑️ Réinitialiser (DANGER)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="add-miner-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Ajouter/Modifier un Mineur</div>
+            <button class="modal-close" onclick="closeModal('add-miner-modal')">&times;</button>
+            <div id="modal-message"></div>
+            <form onsubmit="saveMiner(event)">
+                <div class="form-group">
+                    <label>Nom du Mineur</label>
+                    <input type="text" id="miner-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Adresse IP (locale)</label>
+                    <input type="text" id="miner-ip" placeholder="192.168.1.166" required>
+                </div>
+                <div class="form-group">
+                    <label>Port API</label>
+                    <input type="number" id="miner-port" placeholder="8080" value="8080">
+                </div>
+                <div class="form-group">
+                    <label>Hashrate (GH/s)</label>
+                    <input type="number" id="miner-hashrate" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Prix (Sats/minute)</label>
+                    <input type="number" id="miner-price" min="1" required>
+                </div>
+                <button type="submit" style="width: 100%; margin-top: 20px;">Enregistrer</button>
+                <button type="button" class="secondary" onclick="closeModal('add-miner-modal')" style="width: 100%; margin-top: 10px;">Annuler</button>
+            </form>
+        </div>
+    </div>
+
+    <button class="toggle-demo" onclick="toggleDemoMode()">Mode: <span id="demo-indicator">DÉMO</span></button>
+
+    <script src="libs/helpers.js"></script>
+    <script src="libs/nwc.js"></script>
+    <script src="libs/bitaxe.js"></script>
+
+    <script>
+        let demoMode = true;
+        let editingMinerId = null;
+        let charts = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDemoData();
+            updateUI();
+            startRealtimeUpdates();
+            loadNWCConfig();
+            updateClock();
+            setInterval(updateClock, 1000);
+        });
+
+        function initializeDemoData() {
+            const stored = localStorage.getItem('bitaxe-demo-mineurs');
+            if (!stored) {
+                const demoMiners = [
+                    { id: 'bitaxe-1', name: 'Bitaxe 30GH/s #1', ip: '192.168.1.166', port: 8080, hashrate: 30, satsPerMinute: 50, status: 'libre', totalRevenue: 125000 },
+                    { id: 'bitaxe-2', name: 'Bitaxe 30GH/s #2', ip: '192.168.1.167', port: 8080, hashrate: 30, satsPerMinute: 50, status: 'loue', totalRevenue: 250000 },
+                    { id: 'bitaxe-3', name: 'Bitaxe 100GH/s', ip: '192.168.1.168', port: 8080, hashrate: 100, satsPerMinute: 150, status: 'libre', totalRevenue: 500000 },
+                    { id: 'bitaxe-4', name: 'Bitaxe 30GH/s #3', ip: '192.168.1.169', port: 8080, hashrate: 30, satsPerMinute: 50, status: 'libre', totalRevenue: 75000 },
+                    { id: 'bitaxe-5', name: 'Bitaxe 60GH/s', ip: '192.168.1.170', port: 8080, hashrate: 60, satsPerMinute: 100, status: 'loue', totalRevenue: 300000 },
+                    { id: 'bitaxe-6', name: 'Bitaxe 30GH/s #4', ip: '192.168.1.171', port: 8080, hashrate: 30, satsPerMinute: 50, status: 'libre', totalRevenue: 150000 },
+                    { id: 'bitaxe-7', name: 'Bitaxe 50GH/s', ip: '192.168.1.172', port: 8080, hashrate: 50, satsPerMinute: 80, status: 'libre', totalRevenue: 200000 },
+                    { id: 'bitaxe-8', name: 'Bitaxe 30GH/s #5', ip: '192.168.1.173', port: 8080, hashrate: 30, satsPerMinute: 50, status: 'loue', totalRevenue: 100000 },
+                    { id: 'bitaxe-9', name: 'Bitaxe 100GH/s #2', ip: '192.168.1.174', port: 8080, hashrate: 100, satsPerMinute: 150, status: 'libre', totalRevenue: 750000 },
+                    { id: 'bitaxe-10', name: 'Bitaxe 30GH/s #6', ip: '192.168.1.175', port: 8080, hashrate: 30, satsPerMinute: 50, status: 'libre', totalRevenue: 80000 }
+                ];
+                localStorage.setItem('bitaxe-demo-mineurs', JSON.stringify(demoMiners));
+            }
+        }
+
+        function getMiners() {
+            return JSON.parse(localStorage.getItem('bitaxe-demo-mineurs') || '[]');
+        }
+
+        function saveMiners(miners) {
+            localStorage.setItem('bitaxe-demo-mineurs', JSON.stringify(miners));
+        }
+
+        function getRentals() {
+            return JSON.parse(localStorage.getItem('bitaxe-demo-locations') || '[]');
+        }
+
+        function saveRentals(rentals) {
+            localStorage.setItem('bitaxe-demo-locations', JSON.stringify(rentals));
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'stats') {
+                setTimeout(() => {
+                    if (charts.utilization) charts.utilization.destroy();
+                    createUtilizationChart();
+                }, 100);
+            } else if (tabName === 'historique') {
+                setTimeout(() => {
+                    if (charts.dailyRevenue) charts.dailyRevenue.destroy();
+                    if (charts.minerRevenue) charts.minerRevenue.destroy();
+                    createRevenueCharts();
+                }, 100);
+            }
+        }
+
+        function renderMiners() {
+            const miners = getMiners();
+            const container = document.getElementById('miners-list');
+            container.innerHTML = miners.map(miner => `
+                <div class="miner-card">
+                    <div class="miner-header">
+                        <div class="miner-name">${miner.name}</div>
+                        <div class="status-badge status-${miner.status}">${miner.status === 'libre' ? 'Libre' : 'Loué'}</div>
+                    </div>
+                    <div class="miner-info">
+                        <div class="info-row">
+                            <span class="info-label">IP</span>
+                            <span class="info-value">${miner.ip}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Hashrate</span>
+                            <span class="info-value">${miner.hashrate} GH/s</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Prix</span>
+                            <span class="info-value">${miner.satsPerMinute} Sats/min</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Revenu Total</span>
+                            <span class="info-value">${miner.totalRevenue.toLocaleString()} Sats</span>
+                        </div>
+                    </div>
+                    <div class="miner-actions">
+                        <button onclick="editMiner('${miner.id}')" class="secondary">Modifier</button>
+                        <button onclick="deleteMiner('${miner.id}')" class="danger">Supprimer</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddMinerModal() {
+            editingMinerId = null;
+            document.getElementById('miner-name').value = '';
+            document.getElementById('miner-ip').value = '';
+            document.getElementById('miner-port').value = '8080';
+            document.getElementById('miner-hashrate').value = '';
+            document.getElementById('miner-price').value = '';
+            document.querySelector('#add-miner-modal .modal-header').textContent = 'Ajouter un Mineur';
+            document.getElementById('modal-message').innerHTML = '';
+            document.getElementById('add-miner-modal').classList.add('active');
+        }
+
+        function editMiner(minerId) {
+            const miners = getMiners();
+            const miner = miners.find(m => m.id === minerId);
+            if (!miner) return;
+
+            editingMinerId = minerId;
+            document.getElementById('miner-name').value = miner.name;
+            document.getElementById('miner-ip').value = miner.ip;
+            document.getElementById('miner-port').value = miner.port;
+            document.getElementById('miner-hashrate').value = miner.hashrate;
+            document.getElementById('miner-price').value = miner.satsPerMinute;
+            document.querySelector('#add-miner-modal .modal-header').textContent = 'Modifier le Mineur';
+            document.getElementById('modal-message').innerHTML = '';
+            document.getElementById('add-miner-modal').classList.add('active');
+        }
+
+        function saveMiner(event) {
+            event.preventDefault();
+            const miners = getMiners();
+            const newMiner = {
+                id: editingMinerId || 'bitaxe-' + Date.now(),
+                name: document.getElementById('miner-name').value,
+                ip: document.getElementById('miner-ip').value,
+                port: parseInt(document.getElementById('miner-port').value) || 8080,
+                hashrate: parseFloat(document.getElementById('miner-hashrate').value),
+                satsPerMinute: parseFloat(document.getElementById('miner-price').value),
+                status: editingMinerId ? miners.find(m => m.id === editingMinerId)?.status || 'libre' : 'libre',
+                totalRevenue: editingMinerId ? miners.find(m => m.id === editingMinerId)?.totalRevenue || 0 : 0
+            };
+
+            if (editingMinerId) {
+                const index = miners.findIndex(m => m.id === editingMinerId);
+                miners[index] = newMiner;
+            } else {
+                miners.push(newMiner);
+            }
+
+            saveMiners(miners);
+            closeModal('add-miner-modal');
+            renderMiners();
+            updateUI();
+        }
+
+        function deleteMiner(minerId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce mineur?')) {
+                const miners = getMiners();
+                const filtered = miners.filter(m => m.id !== minerId);
+                saveMiners(filtered);
+                renderMiners();
+                updateUI();
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function renderActiveRentals() {
+            const rentals = getRentals().filter(r => r.status === 'active');
+            const tbody = document.getElementById('active-rentals-body');
+            const miners = getMiners();
+            
+            tbody.innerHTML = rentals.map(rental => {
+                const miner = miners.find(m => m.id === rental.minerId);
+                const now = Date.now();
+                const remaining = Math.max(0, rental.endTime - now);
+                const remainingMin = Math.ceil(remaining / 60000);
+                
+                return `
+                    <tr>
+                        <td>${miner?.name || 'Inconnu'}</td>
+                        <td>${rental.clientPubkey.slice(0, 16)}...</td>
+                        <td>${new Date(rental.startTime).toLocaleString('fr-FR')}</td>
+                        <td>${new Date(rental.endTime).toLocaleString('fr-FR')}</td>
+                        <td>${rental.minutesRented}</td>
+                        <td>${rental.satsPerMinute}</td>
+                        <td>${rental.satsPaid.toLocaleString()}</td>
+                        <td>${remainingMin}m</td>
+                        <td><button onclick="stopRental('${rental.id}')" class="danger">Arrêter</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function stopRental(rentalId) {
+            const rentals = getRentals();
+            const rental = rentals.find(r => r.id === rentalId);
+            if (rental) {
+                rental.status = 'completed';
+                rental.endTime = Date.now();
+                const miners = getMiners();
+                const miner = miners.find(m => m.id === rental.minerId);
+                if (miner) {
+                    miner.status = 'libre';
+                    miner.totalRevenue += rental.satsPaid;
+                    saveMiners(miners);
+                }
+                saveRentals(rentals);
+                renderActiveRentals();
+                renderHistoryTable();
+                updateUI();
+            }
+        }
+
+        function updateHistoryTable() {
+            const filterValue = document.getElementById('history-filter').value;
+            const rentals = getRentals().filter(r => r.status === 'completed');
+            const miners = getMiners();
+            const filtered = filterValue ? rentals.filter(r => r.minerId === filterValue) : rentals;
+            
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = filtered.sort((a, b) => b.startTime - a.startTime).map(rental => {
+                const miner = miners.find(m => m.id === rental.minerId);
+                return `
+                    <tr>
+                        <td>${miner?.name || 'Inconnu'}</td>
+                        <td>${rental.clientPubkey.slice(0, 16)}...</td>
+                        <td>${new Date(rental.startTime).toLocaleString('fr-FR')}</td>
+                        <td>${new Date(rental.endTime).toLocaleString('fr-FR')}</td>
+                        <td>${rental.minutesRented}</td>
+                        <td>${rental.satsPaid.toLocaleString()}</td>
+                        <td>${Math.floor(Math.random() * 10000)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Update filter dropdown
+            const select = document.getElementById('history-filter');
+            select.innerHTML = '<option value="">Tous les mineurs</option>' + miners.map(m => 
+                `<option value="${m.id}">${m.name}</option>`
+            ).join('');
+            select.value = filterValue;
+        }
+
+        function renderHistoryTable() {
+            updateHistoryTable();
+        }
+
+        function createRevenueCharts() {
+            const rentals = getRentals().filter(r => r.status === 'completed');
+            const miners = getMiners();
+
+            // Daily revenue (30 days)
+            const dailyData = {};
+            const now = Date.now();
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(now - i * 24 * 60 * 60 * 1000);
+                const dateStr = date.toLocaleDateString('fr-FR');
+                dailyData[dateStr] = 0;
+            }
+            rentals.forEach(r => {
+                const dateStr = new Date(r.startTime).toLocaleDateString('fr-FR');
+                if (dailyData.hasOwnProperty(dateStr)) {
+                    dailyData[dateStr] += r.satsPaid;
+                }
+            });
+
+            const ctx1 = document.getElementById('daily-revenue-chart').getContext('2d');
+            charts.dailyRevenue = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(dailyData).reverse(),
+                    datasets: [{
+                        label: 'Revenu Quotidien (Sats)',
+                        data: Object.values(dailyData).reverse(),
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // Revenue by miner
+            const minerRevenue = {};
+            miners.forEach(m => {
+                minerRevenue[m.name] = rentals.filter(r => r.minerId === m.id).reduce((sum, r) => sum + r.satsPaid, 0);
+            });
+
+            const ctx2 = document.getElementById('miner-revenue-chart').getContext('2d');
+            charts.minerRevenue = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(minerRevenue),
+                    datasets: [{
+                        label: 'Revenu Total (Sats)',
+                        data: Object.values(minerRevenue),
+                        backgroundColor: '#7c3aed'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function createUtilizationChart() {
+            const rentals = getRentals().filter(r => r.status === 'active' || r.status === 'completed');
+            const miners = getMiners();
+            
+            const utilizationData = miners.map(m => {
+                const minerRentals = rentals.filter(r => r.minerId === m.id);
+                const totalMinutes = minerRentals.reduce((sum, r) => sum + r.minutesRented, 0);
+                return (totalMinutes / 1440) * 100; // % of 24 hours
+            });
+
+            const ctx = document.getElementById('utilization-chart').getContext('2d');
+            charts.utilization = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: miners.map(m => m.name),
+                    datasets: [{
+                        label: 'Taux Utilisation (%)',
+                        data: utilizationData,
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { max: 100 } }
+                }
+            });
+        }
+
+        function updateStats() {
+            const miners = getMiners();
+            const rentals = getRentals();
+            const activeRentals = rentals.filter(r => r.status === 'active');
+
+            const activeMinerCount = miners.filter(m => {
+                const hasConnection = Math.random() > 0.1; // 90% online
+                return hasConnection;
+            }).length;
+
+            const rentedMiners = miners.filter(m => m.status === 'loue').length;
+            const totalRevenue = miners.reduce((sum, m) => sum + m.totalRevenue, 0);
+            
+            const today = new Date().toLocaleDateString('fr-FR');
+            const todayRevenue = rentals
+                .filter(r => r.status === 'completed' && new Date(r.startTime).toLocaleDateString('fr-FR') === today)
+                .reduce((sum, r) => sum + r.satsPaid, 0);
+
+            const avgUtilization = miners.length > 0 ? 
+                (miners.filter(m => m.status === 'loue').length / miners.length) * 100 : 0;
+
+            document.getElementById('stat-active-miners').textContent = activeMinerCount;
+            document.getElementById('stat-rented-miners').textContent = rentedMiners;
+            document.getElementById('stat-active-rentals').textContent = activeRentals.length;
+            document.getElementById('stat-today-revenue').textContent = todayRevenue.toLocaleString();
+            document.getElementById('stat-total-revenue').textContent = totalRevenue.toLocaleString();
+            document.getElementById('stat-utilization').textContent = avgUtilization.toFixed(1) + '%';
+        }
+
+        function updateUI() {
+            renderMiners();
+            renderActiveRentals();
+            renderHistoryTable();
+            updateStats();
+        }
+
+        function startRealtimeUpdates() {
+            setInterval(() => {
+                if (document.getElementById('mineurs').classList.contains('active')) {
+                    renderMiners();
+                }
+                if (document.getElementById('locations').classList.contains('active')) {
+                    renderActiveRentals();
+                }
+                updateStats();
+            }, 5000);
+        }
+
+        function loadNWCConfig() {
+            const nwc = localStorage.getItem('bitaxe-nwc-config');
+            if (nwc) {
+                document.getElementById('nwc-connection').value = nwc;
+            }
+        }
+
+        function testNWCConnection() {
+            const connection = document.getElementById('nwc-connection').value;
+            if (!connection) {
+                document.getElementById('nwc-status').innerHTML = '<div class="error-message">Entrez une connection string</div>';
+                return;
+            }
+            localStorage.setItem('bitaxe-nwc-config', connection);
+            document.getElementById('nwc-status').innerHTML = '<div class="success-message">✓ Configuration NWC enregistrée (Mode démo: paiements simulés)</div>';
+        }
+
+        function saveDefaultPrice() {
+            const price = parseFloat(document.getElementById('default-price').value);
+            if (price > 0) {
+                localStorage.setItem('bitaxe-default-price', price);
+                alert('Prix par défaut enregistré: ' + price + ' Sats/minute');
+            }
+        }
+
+        function exportData() {
+            const data = {
+                mineurs: localStorage.getItem('bitaxe-demo-mineurs'),
+                locations: localStorage.getItem('bitaxe-demo-locations'),
+                nwc: localStorage.getItem('bitaxe-nwc-config'),
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bitaxe-export-' + Date.now() + '.json';
+            a.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data.mineurs) localStorage.setItem('bitaxe-demo-mineurs', data.mineurs);
+                        if (data.locations) localStorage.setItem('bitaxe-demo-locations', data.locations);
+                        if (data.nwc) localStorage.setItem('bitaxe-nwc-config', data.nwc);
+                        alert('Données importées avec succès');
+                        location.reload();
+                    } catch (err) {
+                        alert('Erreur lors de l\'import: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function resetData() {
+            if (confirm('⚠️ Cette action est IRRÉVERSIBLE. Tous les mineurs et l\'historique seront supprimés. Êtes-vous sûr?')) {
+                localStorage.removeItem('bitaxe-demo-mineurs');
+                localStorage.removeItem('bitaxe-demo-locations');
+                initializeDemoData();
+                location.reload();
+            }
+        }
+
+        function toggleDemoMode() {
+            demoMode = !demoMode;
+            const indicator = document.getElementById('demo-indicator');
+            const modeIndicator = document.getElementById('mode-indicator');
+            if (demoMode) {
+                indicator.textContent = 'DÉMO';
+                modeIndicator.textContent = 'DÉMO';
+            } else {
+                indicator.textContent = 'RÉEL';
+                modeIndicator.textContent = 'RÉEL (NWC)';
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('fr-FR');
+        }
+    </script>
+</body>
+</html>

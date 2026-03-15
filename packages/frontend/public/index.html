@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>BitRent - Rent ASIC Miners with Lightning</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/modern.css" />
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"
+    />
+
+    <style>
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary) 0%,
+          var(--bg-secondary) 100%
+        );
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+          circle at 20% 50%,
+          rgba(247, 147, 26, 0.1) 0%,
+          transparent 50%
+        );
+        pointer-events: none;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        max-width: 600px;
+        padding: var(--spacing-4);
+      }
+
+      .hero-title {
+        font-size: var(--font-size-4xl);
+        font-weight: var(--font-weight-bold);
+        margin-bottom: var(--spacing-4);
+        line-height: 1.2;
+      }
+
+      @media (max-width: 768px) {
+        .hero-title {
+          font-size: var(--font-size-3xl);
+        }
+      }
+
+      .hero-subtitle {
+        font-size: var(--font-size-xl);
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-8);
+        line-height: 1.6;
+      }
+
+      .hero-cta {
+        display: flex;
+        gap: var(--spacing-4);
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: var(--spacing-12);
+      }
+
+      .hero-cta .btn {
+        min-width: 200px;
+      }
+
+      /* Features Grid */
+      .features {
+        padding: var(--spacing-16) 0;
+        background-color: var(--bg-secondary);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--spacing-8);
+      }
+
+      .feature-card {
+        padding: var(--spacing-8);
+        background-color: var(--bg-tertiary);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        transition: all var(--transition-base);
+      }
+
+      .feature-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-4px);
+      }
+
+      .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--spacing-4);
+      }
+
+      .feature-title {
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-semibold);
+        margin-bottom: var(--spacing-2);
+      }
+
+      .feature-text {
+        color: var(--text-secondary);
+        line-height: var(--line-height-relaxed);
+      }
+
+      /* Stats */
+      .stats {
+        padding: var(--spacing-16) 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-8);
+        text-align: center;
+      }
+
+      .stat {
+        padding: var(--spacing-6);
+      }
+
+      .stat-number {
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--primary);
+        margin-bottom: var(--spacing-2);
+      }
+
+      .stat-label {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navbar -->
+    <div id="navbar-container"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">⚡ Rent Bitcoin Miners Instantly</h1>
+        <p class="hero-subtitle">
+          Pay with Lightning Network. Mine Bitcoin.
+          <br />
+          No KYC. No Commitment. Pure Bitcoin Freedom.
+        </p>
+
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-lg" id="login-main-btn">
+            Login with Nostr
+          </button>
+          <a href="#features" class="btn btn-outline btn-lg">
+            Learn More
+          </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-number">500+</div>
+            <div class="stat-label">Active Miners</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">$2M+</div>
+            <div class="stat-label">Monthly Rentals</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">⚡</div>
+            <div class="stat-label">Lightning Only</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+      <div class="container">
+        <h2 style="text-align: center; margin-bottom: var(--spacing-12);">
+          Why BitRent?
+        </h2>
+
+        <div class="feature-grid">
+          <!-- Feature 1 -->
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3 class="feature-title">Lightning Fast</h3>
+            <p class="feature-text">
+              Instant payments via Lightning Network. No waiting.
+              No banks. Pure peer-to-peer.
+            </p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3 class="feature-title">Fully Private</h3>
+            <p class="feature-text">
+              Login with Nostr. No email. No KYC. Your privacy is
+              paramount.
+            </p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3 class="feature-title">Real-Time Data</h3>
+            <p class="feature-text">
+              Monitor hashrate, temperature, and earnings in
+              real-time. Full transparency.
+            </p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="feature-card">
+            <div class="feature-icon">🚀</div>
+            <h3 class="feature-title">Start in Minutes</h3>
+            <p class="feature-text">
+              Login, select miners, pay via Lightning, and start
+              mining. That simple.
+            </p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="feature-card">
+            <div class="feature-icon">💰</div>
+            <h3 class="feature-title">Best Rates</h3>
+            <p class="feature-text">
+              Competitive pricing with transparent fee structure.
+              No hidden charges.
+            </p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="feature-card">
+            <div class="feature-icon">📈</div>
+            <h3 class="feature-title">Flexible Plans</h3>
+            <p class="feature-text">
+              Hourly, daily, or monthly rentals. Scale up or down
+              anytime.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section style="padding: var(--spacing-16) 0; text-align: center;">
+      <div class="container">
+        <h2 style="margin-bottom: var(--spacing-6);">Ready to Mine?</h2>
+        <p
+          style="
+            font-size: var(--font-size-lg);
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-8);
+          "
+        >
+          Start mining Bitcoin with Lightning payments today.
+        </p>
+        <button class="btn btn-primary btn-lg" id="login-cta-btn">
+          Login with Nostr
+        </button>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="border-top: 1px solid var(--border-color); padding: var(--spacing-8) 0; text-align: center; color: var(--text-secondary); font-size: var(--font-size-sm);">
+      <div class="container">
+        <p>&copy; 2024 BitRent. All rights reserved.</p>
+        <p style="margin-top: var(--spacing-4);">
+          <a href="#" style="color: var(--text-secondary); text-decoration: underline;">
+            Terms
+          </a>
+          •
+          <a href="#" style="color: var(--text-secondary); text-decoration: underline;">
+            Privacy
+          </a>
+          •
+          <a href="#" style="color: var(--text-secondary); text-decoration: underline;">
+            Contact
+          </a>
+        </p>
+      </div>
+    </footer>
+
+    <!-- Modals -->
+    <div id="login-modal-container"></div>
+
+    <!-- Scripts -->
+    <!-- Config -->
+    <script src="js/config.js"></script>
+
+    <!-- Libraries -->
+    <script src="js/utils.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/nostr-auth.js"></script>
+    <script src="js/nwc-payments.js"></script>
+
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Components -->
+    <script>
+      // Load components
+      async function loadComponents() {
+        // Load navbar
+        const navbarRes = await fetch('components/navbar.html');
+        const navbarHtml = await navbarRes.text();
+        document.getElementById('navbar-container').innerHTML = navbarHtml;
+
+        // Load login modal
+        const loginRes = await fetch('components/login-modal.html');
+        const loginHtml = await loginRes.text();
+        document.getElementById('login-modal-container').innerHTML = loginHtml;
+      }
+
+      // Initialize
+      async function initPage() {
+        await loadComponents();
+
+        // Login buttons
+        document.getElementById('login-main-btn').addEventListener('click', () => {
+          showLoginModal();
+        });
+
+        document.getElementById('login-cta-btn').addEventListener('click', () => {
+          showLoginModal();
+        });
+
+        // Check if already authenticated
+        if (auth.isAuthenticated()) {
+          const role = auth.isAdmin() ? 'admin' : 'user';
+          window.location.href =
+            role === 'admin' ? '/admin.html' : '/client.html';
+        }
+      }
+
+      // Load on ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPage);
+      } else {
+        initPage();
+      }
+    </script>
+  </body>
+</html>

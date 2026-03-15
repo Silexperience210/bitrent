@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitRent - Mining Rental Platform</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    .navbar {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #f59e0b;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: #e2e8f0;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: #f59e0b;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #f59e0b, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: #cbd5e1;
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: #f59e0b;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .btn-primary:hover {
+      background: #d97706;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+      transform: translateY(-2px);
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin: 4rem 0;
+    }
+
+    .feature-card {
+      background: #1e293b;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      border: 1px solid #334155;
+      text-align: center;
+    }
+
+    .feature-card h3 {
+      color: #f59e0b;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card p {
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: #10b981;
+      color: #fff;
+      border-radius: 0.25rem;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    .info-box {
+      background: #1e293b;
+      border-left: 4px solid #f59e0b;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 0.5rem;
+    }
+
+    .info-box h3 {
+      color: #f59e0b;
+      margin-bottom: 0.5rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid #334155;
+      color: #94a3b8;
+      margin-top: 4rem;
+    }
+
+    .highlight {
+      color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="logo">⚡ BitRent</div>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="client.html">Rent Miners</a></li>
+      <li><a href="admin.html">Admin Panel</a></li>
+      <li><a href="#api">API Docs</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>BitRent Mining Rental</h1>
+      <p>Rent Bitcoin mining equipment by the hour. Pay in Bitcoin via Lightning Network.</p>
+      <div class="cta-buttons">
+        <a href="client.html" class="btn btn-primary">Start Renting →</a>
+        <a href="admin.html" class="btn btn-secondary">Admin Dashboard</a>
+      </div>
+    </section>
+
+    <!-- Status Info -->
+    <div class="info-box">
+      <h3>✅ Phase 1 Production Ready</h3>
+      <p>
+        Full backend with real <span class="highlight">Bitcoin payments</span>,
+        <span class="highlight">Nostr authentication</span>, and
+        <span class="highlight">miner management</span> is live.
+      </p>
+      <div class="status-badge">Running</div>
+    </div>
+
+    <!-- Features -->
+    <section id="features" class="features">
+      <div class="feature-card">
+        <h3>⚡ Lightning Fast</h3>
+        <p>Rent miners by the hour. Pay with Bitcoin instantly via Lightning Network.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>🔐 Nostr Auth</h3>
+        <p>Sign in with your Nostr identity. No passwords, true self-custody.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>📊 Real-Time Status</h3>
+        <p>Monitor miner hashrate, temperature, and performance in real-time.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>🛒 Marketplace</h3>
+        <p>Browse available miners, compare prices, and rent on demand.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>📈 Admin Tools</h3>
+        <p>Manage inventory, track rentals, and view platform statistics.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>🌐 API First</h3>
+        <p>RESTful API with comprehensive documentation for integrations.</p>
+      </div>
+    </section>
+
+    <!-- API Info -->
+    <section id="api" class="info-box" style="border-left-color: #3b82f6;">
+      <h3 style="color: #3b82f6;">📚 API Documentation</h3>
+      <p>
+        Complete API endpoints available at:
+        <code style="background: #0f172a; padding: 0.25rem 0.5rem; border-radius: 0.25rem;">
+          /api/docs
+        </code>
+      </p>
+      <p style="margin-top: 1rem; font-size: 0.9rem;">
+        Base URL: <code style="background: #0f172a; padding: 0.25rem 0.5rem; border-radius: 0.25rem;">
+          http://localhost:3000
+        </code>
+      </p>
+    </section>
+
+    <!-- Quick Links -->
+    <section class="info-box">
+      <h3>🚀 Quick Start</h3>
+      <ul style="margin-left: 2rem; margin-top: 1rem;">
+        <li><a href="client.html" style="color: #f59e0b;">Client Marketplace</a> - Browse and rent miners</li>
+        <li><a href="admin.html" style="color: #f59e0b;">Admin Dashboard</a> - Manage miners and rentals</li>
+        <li><a href="API_DOCUMENTATION.md" style="color: #f59e0b;">API Documentation</a> - Full endpoint reference</li>
+        <li><a href="BACKEND_SETUP.md" style="color: #f59e0b;">Setup Guide</a> - Local development</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>BitRent Phase 1 © 2024 | Built with ⚡ and Bitcoin</p>
+    <p style="margin-top: 1rem; font-size: 0.9rem;">
+      Status: <span style="color: #10b981;">● Online</span> |
+      Backend: <span style="color: #10b981;">● Connected</span> |
+      Database: <span style="color: #10b981;">● Synced</span>
+    </p>
+  </footer>
+</body>
+</html>

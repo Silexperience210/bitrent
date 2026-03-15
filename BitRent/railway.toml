@@ -1,0 +1,39 @@
+[project]
+name = "bitrent-production"
+startCommand = "npm run start:prod"
+dockerfilePath = "./Dockerfile"
+
+[build]
+builder = "dockerfile"
+watchPaths = ["src/", "public/"]
+buildCommand = "npm run build"
+
+[deploy]
+numReplicas = 2
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[env]
+NODE_ENV = "production"
+LOG_LEVEL = "info"
+
+[[services]]
+name = "api-server"
+port = 3000
+healthcheckPath = "/health"
+healthcheckInterval = 30
+restartPolicyType = "on_failure"
+
+[[services]]
+name = "background-jobs"
+port = 3001
+healthcheckPath = "/health"
+healthcheckInterval = 60
+
+[volumes]
+logs = "/app/logs"
+backups = "/app/backups"
+
+[monitoring]
+enableMetrics = true
+metricsPort = 9090

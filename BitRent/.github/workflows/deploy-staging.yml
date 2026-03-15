@@ -1,0 +1,143 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - '.github/workflows/deploy-staging.yml'
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Tests & Linting
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bitrent
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: bitrent_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Lint code
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://bitrent:test_password@localhost:5432/bitrent_test
+      
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Tests passed! Ready to merge.'
+            });
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Build
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    environment:
+      name: staging
+      url: https://staging.bitrent.io
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Railway
+        run: |
+          curl -X POST \
+            https://api.railway.app/graphql \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": "mutation { deploymentTrigger(environmentId: \"${{ secrets.RAILWAY_STAGING_ENV_ID }}\") { id } }"
+            }'
+      
+      - name: Wait for deployment
+        run: sleep 60
+      
+      - name: Run smoke tests
+        run: |
+          chmod +x ./scripts/smoke-tests.sh
+          ./scripts/smoke-tests.sh staging https://staging.bitrent.io
+      
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Staging deployment ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment ${{ job.status | upper }}*\nBranch: ${{ github.ref_name }}"
+                  }
+                }
+              ]
+            }

@@ -1,0 +1,233 @@
+<div class="modal" id="login-modal">
+  <div class="modal-content">
+    <!-- Header -->
+    <div class="modal-header">
+      <h2 class="modal-title">Login with Nostr</h2>
+      <button
+        type="button"
+        class="modal-close"
+        data-dismiss="modal"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+      <!-- Error Message -->
+      <div
+        class="alert alert-error"
+        id="login-error"
+        style="display: none;"
+      >
+        <strong>Error:</strong>
+        <span id="login-error-text"></span>
+      </div>
+
+      <!-- Loading State -->
+      <div id="login-loading" style="display: none;">
+        <div class="flex flex-center gap-4" style="padding: var(--spacing-8);">
+          <div class="spinner"></div>
+          <p>Connecting to wallet...</p>
+        </div>
+      </div>
+
+      <!-- Wallet Options (show by default) -->
+      <div id="login-options">
+        <p style="margin-bottom: var(--spacing-4); color: var(--text-secondary);">
+          Choose your Nostr wallet to login:
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+          <!-- Alby -->
+          <button
+            type="button"
+            class="btn btn-secondary"
+            style="text-align: left;"
+            id="wallet-alby"
+            data-wallet="alby"
+          >
+            <span style="font-size: 1.5rem; margin-right: var(--spacing-2);">🐝</span>
+            <span>Alby</span>
+          </button>
+
+          <!-- NIP-07 Extension -->
+          <button
+            type="button"
+            class="btn btn-secondary"
+            style="text-align: left;"
+            id="wallet-nip07"
+            data-wallet="nip07"
+          >
+            <span style="font-size: 1.5rem; margin-right: var(--spacing-2);">🔐</span>
+            <span>Browser Extension (NIP-07)</span>
+          </button>
+
+          <!-- NIP-46 Remote Signer -->
+          <button
+            type="button"
+            class="btn btn-secondary"
+            style="text-align: left;"
+            id="wallet-nip46"
+            data-wallet="nip46"
+            disabled
+          >
+            <span style="font-size: 1.5rem; margin-right: var(--spacing-2);">📱</span>
+            <span>Remote Signer (NIP-46)</span>
+          </button>
+        </div>
+
+        <!-- Info -->
+        <div class="alert alert-info" style="margin-top: var(--spacing-6);">
+          <strong>Don't have a Nostr wallet?</strong>
+          <a href="https://getalby.com" target="_blank" rel="noopener">
+            Get Alby
+          </a>
+          or use any NIP-07 compatible wallet.
+        </div>
+      </div>
+
+      <!-- Success State -->
+      <div id="login-success" style="display: none;">
+        <div class="flex flex-center gap-4" style="padding: var(--spacing-8); flex-direction: column;">
+          <span style="font-size: 3rem;">✅</span>
+          <p><strong>Login successful!</strong></p>
+          <p style="color: var(--text-secondary); font-size: var(--font-size-sm);">
+            Redirecting...
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        id="login-cancel"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /**
+   * Login Modal Handler
+   */
+  class LoginModalHandler {
+    constructor() {
+      this.modal = document.getElementById('login-modal');
+      this.optionsView = document.getElementById('login-options');
+      this.loadingView = document.getElementById('login-loading');
+      this.successView = document.getElementById('login-success');
+      this.errorView = document.getElementById('login-error');
+      this.errorText = document.getElementById('login-error-text');
+
+      this.init();
+    }
+
+    init() {
+      // Wallet buttons
+      document.querySelectorAll('[data-wallet]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const walletId = e.target.closest('[data-wallet]')?.dataset.wallet;
+          if (walletId) {
+            this.login(walletId);
+          }
+        });
+      });
+
+      // Close buttons
+      document.querySelectorAll('[data-dismiss="modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => this.close());
+      });
+
+      document.getElementById('login-cancel').addEventListener('click', () => {
+        this.close();
+      });
+
+      // Close on background click
+      this.modal.addEventListener('click', (e) => {
+        if (e.target === this.modal) {
+          this.close();
+        }
+      });
+    }
+
+    show() {
+      this.modal.classList.add('show');
+      this.showView('options');
+    }
+
+    close() {
+      this.modal.classList.remove('show');
+    }
+
+    showView(view) {
+      this.optionsView.style.display = view === 'options' ? 'block' : 'none';
+      this.loadingView.style.display = view === 'loading' ? 'block' : 'none';
+      this.successView.style.display = view === 'success' ? 'block' : 'none';
+      this.errorView.style.display = view === 'error' ? 'block' : 'none';
+    }
+
+    showError(message) {
+      this.errorText.textContent = message;
+      this.showView('error');
+    }
+
+    async login(walletId) {
+      try {
+        this.showView('loading');
+
+        const result = await auth.login(walletId);
+
+        this.showView('success');
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          const role = result.role;
+          if (role === 'admin') {
+            window.location.href = '/admin.html';
+          } else {
+            window.location.href = '/client.html';
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('[LoginModal] Login failed:', error);
+
+        const message =
+          error.data?.message ||
+          error.message ||
+          'Login failed. Please try again.';
+
+        this.showError(message);
+
+        // Show options after 3 seconds
+        setTimeout(() => {
+          this.showView('options');
+        }, 3000);
+      }
+    }
+  }
+
+  // Create global instance
+  let loginModal;
+
+  function showLoginModal() {
+    if (!loginModal) {
+      loginModal = new LoginModalHandler();
+    }
+    loginModal.show();
+  }
+
+  // Initialize on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      loginModal = new LoginModalHandler();
+    });
+  } else {
+    loginModal = new LoginModalHandler();
+  }
+</script>

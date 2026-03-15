@@ -1,0 +1,147 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to rollback to (optional, defaults to previous)'
+        required: false
+        default: ''
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    name: Rollback ${{ github.event.inputs.environment }}
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Verify permissions
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            echo "Production rollback requires explicit approval"
+            if [ -z "${{ secrets.PRODUCTION_ROLLBACK_APPROVED }}" ]; then
+              echo "❌ Production rollback not approved"
+              exit 1
+            fi
+          fi
+      
+      - name: Get previous version
+        id: version
+        run: |
+          if [ -z "${{ github.event.inputs.version }}" ]; then
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD~1)
+          else
+            VERSION=${{ github.event.inputs.version }}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Rollback version: $VERSION"
+      
+      - name: Rollback code
+        run: |
+          git fetch --all
+          git checkout ${{ steps.version.outputs.version }}
+          npm ci
+          npm run build
+      
+      - name: Deploy rollback version
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          if [ "$ENVIRONMENT" == "production" ]; then
+            curl -X POST \
+              https://api.railway.app/graphql \
+              -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "query": "mutation { deploymentTrigger(environmentId: \"${{ secrets.RAILWAY_PROD_ENV_ID }}\") { id } }"
+              }'
+          else
+            curl -X POST \
+              https://api.railway.app/graphql \
+              -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "query": "mutation { deploymentTrigger(environmentId: \"${{ secrets.RAILWAY_STAGING_ENV_ID }}\") { id } }"
+              }'
+          fi
+      
+      - name: Wait for rollback
+        run: sleep 120
+      
+      - name: Verify rollback
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+          BASE_URL: ${{ github.event.inputs.environment == 'production' && 'https://bitrent.io' || 'https://staging.bitrent.io' }}
+        run: |
+          chmod +x ./scripts/smoke-tests.sh
+          ./scripts/smoke-tests.sh $ENVIRONMENT $BASE_URL
+      
+      - name: Run health checks
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          chmod +x ./scripts/health-check.sh
+          ./scripts/health-check.sh $ENVIRONMENT --verbose
+      
+      - name: Notify Slack (Success)
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Rollback successful ✅",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*✅ Rollback Successful*\nEnvironment: `${{ github.event.inputs.environment }}`\nVersion: `${{ steps.version.outputs.version }}`\nInitiated by: `${{ github.actor }}`"
+                  }
+                }
+              ]
+            }
+      
+      - name: Notify Slack (Failure)
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Rollback failed ❌",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*❌ Rollback Failed*\nEnvironment: `${{ github.event.inputs.environment }}`\nVersion: `${{ steps.version.outputs.version }}`\n\nPlease investigate manually!"
+                  }
+                }
+              ]
+            }
+      
+      - name: Create incident issue
+        if: failure() && github.event.inputs.environment == 'production'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '[INCIDENT] Production Rollback Failed',
+              body: `Rollback to version ${{ steps.version.outputs.version }} failed!\n\nPlease investigate immediately!`,
+              labels: ['incident', 'production', 'critical'],
+            });

@@ -1,0 +1,310 @@
+/**
+ * Authentication Styles
+ * Login modal, user header, and auth-related components
+ */
+
+:root {
+  --primary-color: #f39c12;
+  --primary-dark: #e67e22;
+  --secondary-color: #3498db;
+  --dark-bg: #1a1a2e;
+  --darker-bg: #16213e;
+  --text-light: #ecf0f1;
+  --text-muted: #95a5a6;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+}
+
+/* Login Modal */
+.login-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.login-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}
+
+.login-modal-content {
+  position: relative;
+  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--primary-color);
+}
+
+.login-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.login-modal-close:hover {
+  transform: scale(1.2);
+}
+
+/* Modal Header */
+.login-modal-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-modal-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary-color);
+  font-size: 1.8rem;
+}
+
+.login-modal-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* Status Messages */
+.login-status,
+.login-error,
+.login-success {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  text-align: center;
+  animation: slideIn 0.3s ease;
+}
+
+.login-status {
+  background-color: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+  border-left: 4px solid #3498db;
+}
+
+.login-error {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border-left: 4px solid #e74c3c;
+}
+
+.login-success {
+  background-color: rgba(39, 174, 96, 0.2);
+  color: #27ae60;
+  border-left: 4px solid #27ae60;
+}
+
+/* Wallet Options */
+.login-modal-wallets {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.wallet-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(243, 156, 18, 0.3);
+  border-radius: 8px;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.wallet-option:hover:not(:disabled) {
+  background: rgba(243, 156, 18, 0.1);
+  border-color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.wallet-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wallet-icon {
+  font-size: 1.8rem;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.wallet-name {
+  display: block;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.wallet-desc {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Info Section */
+.login-modal-info {
+  background: rgba(52, 152, 219, 0.1);
+  border-left: 4px solid #3498db;
+  padding: 1rem;
+  border-radius: 6px;
+  margin: 1.5rem 0;
+}
+
+.login-modal-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: #3498db;
+  font-size: 1rem;
+}
+
+.login-modal-info p {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.login-modal-info a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.login-modal-info a:hover {
+  color: var(--primary-color);
+}
+
+/* Security Note */
+.login-modal-security {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(39, 174, 96, 0.1);
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.security-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-modal-security p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .login-modal-content {
+    width: 95%;
+    padding: 1.5rem;
+  }
+
+  .login-modal-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .wallet-option {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .wallet-icon {
+    margin: 0;
+  }
+}
+
+/* Loading Spinner (for status messages) */
+.loading-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Accessibility */
+.login-modal button:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Dark mode adjustments (already dark, but for clarity) */
+@media (prefers-color-scheme: dark) {
+  .login-modal-content {
+    color: var(--text-light);
+  }
+
+  .wallet-option {
+    color: var(--text-light);
+  }
+}
+
+/* Print styles */
+@media print {
+  .login-modal {
+    display: none !important;
+  }
+}

@@ -1,0 +1,413 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-prod.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Test phase
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bitrent
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: bitrent_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          DATABASE_URL: postgresql://bitrent:test_password@localhost:5432/bitrent_test
+      
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          DATABASE_URL: postgresql://bitrent:test_password@localhost:5432/bitrent_test
+      
+      - name: Generate coverage report
+        run: npm run test:coverage
+        if: always()
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+
+  # Build phase
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Build Docker Image
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Security scanning phase
+  security:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Security Scan
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Staging deployment phase
+  deploy-staging:
+    needs: [test, build, security]
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    environment:
+      name: staging
+      url: https://staging.bitrent.io
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Railway (Staging)
+        run: |
+          curl -X POST \
+            https://api.railway.app/graphql \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": "mutation { deploymentTrigger(environmentId: \"${{ secrets.RAILWAY_STAGING_ENV_ID }}\") { id } }"
+            }'
+      
+      - name: Wait for deployment
+        run: sleep 60
+      
+      - name: Run smoke tests on staging
+        run: |
+          bash ./scripts/smoke-tests.sh staging https://staging.bitrent.io
+      
+      - name: Health check
+        run: |
+          bash ./scripts/health-check.sh staging
+      
+      - name: Notify Slack (Staging deployment)
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Staging deployment ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment ${{ job.status | upper }}*\nCommit: ${{ github.sha }}\nBranch: ${{ github.ref_name }}"
+                  }
+                }
+              ]
+            }
+
+  # Production approval gate
+  approval:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    name: Request Production Approval
+    
+    steps:
+      - name: Create deployment approval issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[DEPLOY] Production deployment approval - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Production Deployment Request\n\n**Commit:** ${context.sha}\n**Branch:** ${context.ref}\n\nStaging tests passed! ✅\n\nPlease review and approve production deployment.`,
+              labels: ['deployment', 'production', 'needs-approval'],
+            });
+            console.log(`Created issue: ${issue.data.number}`);
+      
+      - name: Notify Slack for approval
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Production deployment requires approval",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*⚠️  Production Deployment Approval Required*\nStaging tests passed.\nReady to deploy to production.\n\nCommit: `${{ github.sha }}`"
+                  }
+                }
+              ]
+            }
+
+  # Database backup before production deployment
+  backup:
+    needs: approval
+    runs-on: ubuntu-latest
+    name: Backup Production Database
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: eu-west-1
+      
+      - name: Create database backup
+        run: |
+          bash ./scripts/backup-database.sh production
+      
+      - name: Upload backup to S3
+        run: |
+          aws s3 cp ./backups/database/ s3://bitrent-backups/production/ --recursive --sse AES256
+
+  # Production deployment
+  deploy-prod:
+    needs: [backup]
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    environment:
+      name: production
+      url: https://bitrent.io
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Railway (Production)
+        run: |
+          curl -X POST \
+            https://api.railway.app/graphql \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "query": "mutation { deploymentTrigger(environmentId: \"${{ secrets.RAILWAY_PROD_ENV_ID }}\") { id } }"
+            }'
+      
+      - name: Wait for production deployment
+        run: sleep 120
+      
+      - name: Run smoke tests on production
+        run: |
+          bash ./scripts/smoke-tests.sh production https://bitrent.io
+      
+      - name: Health check production
+        run: |
+          bash ./scripts/health-check.sh production
+      
+      - name: Purge Cloudflare cache
+        run: |
+          curl -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+      
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: release-${{ github.run_number }}
+          release_name: Production Release ${{ github.run_number }}
+          body: |
+            Production deployment successful!
+            Commit: ${{ github.sha }}
+            
+            **Changes:**
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+      
+      - name: Notify Slack (Production deployed)
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Production deployment successful ✅",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*✅ Production Deployment Successful*\nCommit: `${{ github.sha }}`\nRelease: `release-${{ github.run_number }}`\nTime: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                  }
+                }
+              ]
+            }
+      
+      - name: Notify Slack (Production failed)
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Production deployment failed ❌",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*❌ Production Deployment Failed*\nCommit: `${{ github.sha }}`\nPlease check logs and rollback if needed."
+                  }
+                }
+              ]
+            }
+
+  # Post-deployment monitoring
+  monitor:
+    needs: deploy-prod
+    runs-on: ubuntu-latest
+    name: Monitor Production
+    if: success()
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Wait before monitoring
+        run: sleep 60
+      
+      - name: Run health checks
+        run: |
+          bash ./scripts/health-check.sh production --verbose
+      
+      - name: Run performance tests
+        run: |
+          bash ./scripts/performance-test.sh production https://bitrent.io 60
+
+  # Auto-rollback on critical errors (24h window)
+  auto-rollback:
+    needs: monitor
+    runs-on: ubuntu-latest
+    name: Auto-Rollback Check
+    if: always()
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for critical errors in Sentry
+        run: |
+          CRITICAL_ISSUES=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
+            "https://sentry.io/api/0/organizations/bitrent/issues/?query=is:unresolved%20level:error&limit=100" \
+            | jq '.[] | select(.level=="error") | length')
+          
+          if [ "$CRITICAL_ISSUES" -gt 5 ]; then
+            echo "Critical errors detected: $CRITICAL_ISSUES"
+            echo "SHOULD_ROLLBACK=true" >> $GITHUB_ENV
+          fi
+      
+      - name: Trigger rollback
+        if: env.SHOULD_ROLLBACK == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'rollback.yml',
+              ref: 'main',
+              inputs: {
+                environment: 'production'
+              }
+            });

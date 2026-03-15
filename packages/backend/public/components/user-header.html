@@ -1,0 +1,124 @@
+<!-- User Authentication Header -->
+<div class="nostr-header">
+  <div class="nostr-header-left">
+    <h1>BitRent</h1>
+    <p class="tagline">Nostr Bitcoin Mining Rental</p>
+  </div>
+
+  <nav class="nostr-header-nav">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/client.html" class="nav-link">Rent a Miner</a>
+    <a href="/admin.html" class="nav-link" data-require-admin>Admin Panel</a>
+  </nav>
+
+  <div class="nostr-header-auth">
+    <!-- Login button -->
+    <button id="nostr-login-btn" class="btn btn-primary" style="display: none;">
+      🔑 Login with Nostr
+    </button>
+
+    <!-- User info (when logged in) -->
+    <div class="nostr-user-info" style="display: none;">
+      <span id="nostr-user-display" class="user-display"></span>
+      <button id="nostr-logout-btn" class="btn btn-secondary" style="display: none;">
+        Logout
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .nostr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-bottom: 2px solid #f39c12;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .nostr-header-left h1 {
+    margin: 0;
+    color: #f39c12;
+    font-size: 1.8rem;
+  }
+
+  .nostr-header-left .tagline {
+    margin: 0.25rem 0 0 0;
+    color: #999;
+    font-size: 0.9rem;
+  }
+
+  .nostr-header-nav {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .nav-link {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+
+  .nav-link:hover {
+    color: #f39c12;
+  }
+
+  .nostr-header-auth {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+  }
+
+  .btn-primary {
+    background-color: #f39c12;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #e67e22;
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: #f39c12;
+    border: 2px solid #f39c12;
+  }
+
+  .btn-secondary:hover {
+    background-color: #f39c12;
+    color: white;
+  }
+
+  .user-display {
+    color: #f39c12;
+    font-weight: 600;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 768px) {
+    .nostr-header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .nostr-header-nav {
+      width: 100%;
+      justify-content: center;
+      gap: 1rem;
+    }
+  }
+</style>

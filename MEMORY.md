@@ -1,5 +1,24 @@
 # MEMORY.md - Long-Term Memory
 
+## 🚀 BitRent Project Status
+
+### MONOREPO STRUCTURE ✅
+- **Repository:** https://github.com/Silexperience210/bitrent
+- **Structure:** `packages/frontend` + `packages/backend` (consolidated)
+- **Root Config:** npm workspaces in package.json
+- **Status:** PUSHED TO GITHUB ✅
+
+### Next Steps
+1. ⏳ Create Supabase account (free tier)
+2. ⏳ Run migrations: `npm run migrations:up --workspace=packages/backend`
+3. ⏳ Setup environment variables in Vercel
+4. ⏳ Deploy both packages to Vercel
+5. ⏳ Integration testing between frontend + backend
+
+**See:** DEPLOYMENT_CHECKLIST.md for detailed steps
+
+---
+
 ## 🎯 Capacités & Services
 
 ### 1️⃣ Dashboard de Gestion Commandes

@@ -49,6 +49,8 @@ Thumbs.db
 *.key
 secrets/
 private/
+.vercel-token
+.vercel/
 
 # Temporary files
 tmp/

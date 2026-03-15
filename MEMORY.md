@@ -8,12 +8,23 @@
 - **Root Config:** npm workspaces in package.json
 - **Status:** PUSHED TO GITHUB ✅
 
+### Database ✅
+- **Supabase:** https://taxudennjzcmjqcsgesn.supabase.co
+- **Tables Created:** users, mineurs, rentals, payments, etc.
+- **Status:** READY ✅
+
+### Vercel Deployment 🚀
+- **Vercel Token:** Stored in `.vercel-token` (NOT committed)
+- **GitHub App:** Need to install Vercel app on GitHub
+- **Frontend:** `packages/frontend` (static HTML)
+- **Backend:** `packages/backend` (Node.js API)
+- **Status:** INSTALLING GITHUB APP (in progress)
+
 ### Next Steps
-1. ⏳ Create Supabase account (free tier)
-2. ⏳ Run migrations: `npm run migrations:up --workspace=packages/backend`
-3. ⏳ Setup environment variables in Vercel
-4. ⏳ Deploy both packages to Vercel
-5. ⏳ Integration testing between frontend + backend
+1. ⏳ Install Vercel GitHub App: https://github.com/apps/vercel
+2. ⏳ Deploy frontend to Vercel
+3. ⏳ Deploy backend to Vercel with env vars
+4. ⏳ Integration testing between frontend + backend
 
 **See:** DEPLOYMENT_CHECKLIST.md for detailed steps
 

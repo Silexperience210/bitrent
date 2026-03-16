@@ -1,26 +1,78 @@
 {
   "version": 2,
-  "buildCommand": "cd packages/backend && npm install",
   "public": "public",
-  "api": {
-    "builder": "@vercel/node",
-    "src": "api/**/*.js"
+  "buildCommand": "npm install && npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "public",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
   },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "api/$1.js"
+      "dest": "/api/$1.js",
+      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     },
     {
-      "src": "/(.*)",
-      "dest": "public/$1"
+      "src": "/admin.html",
+      "dest": "/admin.html"
+    },
+    {
+      "src": "/client.html",
+      "dest": "/client.html"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/js/$1"
+    },
+    {
+      "src": "/(.*)\\.html",
+      "dest": "/$1.html"
+    },
+    {
+      "src": "/(?!api).*",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=3600"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
     }
   ],
   "env": {
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_SERVICE_KEY": "@supabase_service_key",
-    "SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "JWT_SECRET": "@jwt_secret",
+    "SUPABASE_URL": "",
+    "SUPABASE_SERVICE_KEY": "",
+    "SUPABASE_ANON_KEY": "",
+    "JWT_SECRET": "",
     "NODE_ENV": "production",
     "PORT": "3000"
   }

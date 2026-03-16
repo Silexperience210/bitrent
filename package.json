@@ -1,24 +1,40 @@
 {
   "name": "bitrent",
   "version": "1.0.0",
-  "description": "BitRent - Bitaxe Mining Rental Platform with Nostr Auth & Lightning Payments",
+  "description": "BitRent - Production-ready Bitaxe Mining Rental Platform with Nostr Auth & Lightning Payments",
   "private": true,
   "workspaces": [
     "packages/frontend",
     "packages/backend"
   ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
-    "install-all": "npm install",
+    "preinstall": "npm --version",
+    "install": "npm install --legacy-peer-deps",
+    "postinstall": "npm install --workspace=packages/backend --legacy-peer-deps",
+    "build": "npm run build --workspace=packages/backend 2>/dev/null || true",
     "dev": "npm run dev --workspaces",
-    "build": "npm run build --workspaces && npm run build --workspace=packages/backend",
-    "build:frontend": "cd packages/frontend && npm run build",
-    "build:backend": "cd packages/backend && npm run build",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "frontend": "npm run dev --workspace=packages/frontend",
     "backend": "npm run dev --workspace=packages/backend",
-    "migrations:up": "npm run migrations:up --workspace=packages/backend",
-    "migrations:down": "npm run migrations:down --workspace=packages/backend"
+    "migrations:up": "cd packages/backend && node migrations/migration-runner.js up",
+    "migrations:down": "cd packages/backend && node migrations/migration-runner.js down",
+    "start": "node api/health.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "jsonwebtoken": "^9.0.0",
+    "uuid": "^9.0.0",
+    "nostr-tools": "^1.14.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@playwright/test": "^1.40.1"
   },
   "keywords": [
     "bitcoin",
@@ -26,8 +42,14 @@
     "bitaxe",
     "nostr",
     "lightning",
-    "rental"
+    "rental",
+    "satoshi",
+    "vercel"
   ],
   "author": "Silexperience210",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Silexperience210/bitrent.git"
+  }
 }

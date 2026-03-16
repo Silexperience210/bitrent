@@ -1,0 +1,55 @@
+# Git & version control
+.git
+.gitignore
+.github
+
+# Dependencies
+node_modules
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+.vercel-token
+
+# Build outputs (we'll rebuild on Vercel)
+dist
+build
+.next
+out
+
+# Testing
+coverage
+.nyc_output
+*.test.js
+tests
+test
+
+# Documentation
+*.md
+docs
+doc
+
+# IDE
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+
+# Project files
+memory
+BitRent
+Projet-OpenClaw
+*.html (except public/)
+
+# Temporary
+tmp
+temp
+.tmp
+
+# Analytics
+.vercel

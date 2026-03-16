@@ -199,25 +199,21 @@ SENTRY_DSN=https://...
 
 If you want to keep secrets separate from git:
 
-**Create `.env.secrets`** (in .gitignore):
+**Create `.env.local`** (in .gitignore):
 ```bash
 # Local development secrets only
 # Never committed to git
 
-SUPABASE_URL=...
-SUPABASE_SERVICE_KEY=...
-JWT_SECRET=...
-NWC_CONNECTION_STRING=...
+SUPABASE_URL=[your-url]
+SUPABASE_SERVICE_KEY=[your-key]
+JWT_SECRET=[your-secret]
+NWC_CONNECTION_STRING=[your-connection]
 ```
 
-**Then in .env:**
-```bash
-# Source secrets from .env.secrets file
-source .env.secrets
-
-# Or in JavaScript:
-require('dotenv').config({ path: '.env.secrets' });
-```
+**Never put actual values here in documentation!**
+- Copy from Supabase dashboard directly to your local `.env.local`
+- Never share these files
+- Never commit to git
 
 ---
 

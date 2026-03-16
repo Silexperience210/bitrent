@@ -19,6 +19,15 @@ I'll provide you with the SQL migrations. **Execute them in order:**
 
 ---
 
+## ⚠️ IMPORTANT BEFORE RUNNING MIGRATIONS
+
+Make sure your Supabase project is created:
+1. Go to https://supabase.com/dashboard
+2. Create a new project
+3. Note your **Project URL** and **API Keys** (you'll need them for Vercel)
+
+---
+
 ## Migration 1: Initial Schema
 
 This creates all tables and enums.

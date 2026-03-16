@@ -37,13 +37,15 @@
 Add these in Vercel Project Settings → Environment Variables:
 
 ```
-SUPABASE_URL=https://taxudennjzcmjqcsgesn.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRheHVkZW5uanpjbWpxY3NnZXNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU5MTUyOCwiZXhwIjoyMDg5MTY3NTI4fQ._vKlnytiFh4JNhjxIr5iO8ponyDxSfrBhOzOL9yxPlE
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRheHVkZW5uanpjbWpxY3NnZXNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTE1MjgsImV4cCI6MjA4OTE2NzUyOH0.5g5WiXIdoijjtaA36TMticz6OCh0z21tNrR8Y7peM0U
-JWT_SECRET=bitrent-super-secret-key-2026-production
+SUPABASE_URL=[your-supabase-url]
+SUPABASE_SERVICE_KEY=[your-service-role-key]
+SUPABASE_ANON_KEY=[your-anon-key]
+JWT_SECRET=[generate-random-string-32-chars]
 NODE_ENV=production
 PORT=3000
 ```
+
+See `.env.example` for complete template.
 
 ## Endpoints Ready for Testing
 

@@ -55,43 +55,28 @@ Complete monorepo: `github.com/Silexperience210/bitrent`
 
 ## Phase 3: Environment Variables Setup ⏳
 
-### Backend (.env)
-Create `packages/backend/.env`:
+### Backend Environment Variables
 
+Get these from:
+- **Supabase:** https://supabase.com/dashboard → Settings → API
+- **Generate random string:** Use `openssl rand -base64 32` or similar
+
+Required vars (set in Vercel Project Settings):
 ```
-# Supabase (REQUIRED)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGc...
-SUPABASE_ANON_KEY=eyJhbGc...
-
-# Auth (REQUIRED)
-JWT_SECRET=generate-random-string-here
-JWT_EXPIRY=7d
-ADMIN_PUBKEYS=your-nostr-pubkey,other-admin-pubkey
-
-# Payments (REQUIRED)
-NWC_CONNECTION_STRING=nostr+walletconnect://...
-NWC_RELAY=wss://relay.getalby.com/v1
-
-# Server
+SUPABASE_URL=[from Supabase]
+SUPABASE_SERVICE_KEY=[from Supabase]
+SUPABASE_ANON_KEY=[from Supabase]
+JWT_SECRET=[generate random]
 NODE_ENV=production
 PORT=3000
-LOG_LEVEL=info
-
-# Monitoring (optional)
-SENTRY_DSN=https://...@sentry.io/...
 ```
 
-### Frontend (.env or .env.local)
-Create `packages/frontend/.env.local`:
+**See:** `.env.example` for template
 
-```
-VITE_API_URL=https://your-backend-url.vercel.app
-VITE_NWC_RELAY=wss://relay.getalby.com/v1
-VITE_ADMIN_PUBKEY=your-nostr-pubkey
-```
+### Frontend Configuration
 
-**See:** `packages/backend/.env.example` for all options
+Frontend uses relative API URLs and static configuration.
+No env vars needed for frontend on Vercel (everything configured in code).
 
 ---
 

@@ -1,0 +1,12 @@
+# Vercel Token Storage (for local use only)
+# DO NOT commit this file - it's in .gitignore
+
+# Get your token from: https://vercel.com/account/tokens
+# Create token with "project" and "deployment" scopes
+
+VERCEL_TOKEN=[generate from vercel.com/account/tokens]
+VERCEL_ORG_ID=[your-vercel-org-id]
+VERCEL_PROJECT_ID=[your-vercel-project-id]
+
+# Note: These should only exist locally
+# Vercel CI/CD uses automatic auth via GitHub integration

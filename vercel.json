@@ -1,26 +1,27 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "packages/frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "packages/frontend/public"
-      }
-    },
-    {
-      "src": "packages/backend/package.json",
-      "use": "@vercel/node"
-    }
-  ],
+  "buildCommand": "cd packages/backend && npm install",
+  "public": "public",
+  "api": {
+    "builder": "@vercel/node",
+    "src": "api/**/*.js"
+  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "packages/backend/api/$1"
+      "dest": "api/$1.js"
     },
     {
       "src": "/(.*)",
-      "dest": "packages/frontend/public/$1"
+      "dest": "public/$1"
     }
-  ]
+  ],
+  "env": {
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_SERVICE_KEY": "@supabase_service_key",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "JWT_SECRET": "@jwt_secret",
+    "NODE_ENV": "production",
+    "PORT": "3000"
+  }
 }

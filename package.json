@@ -10,7 +10,9 @@
   "scripts": {
     "install-all": "npm install",
     "dev": "npm run dev --workspaces",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces && npm run build --workspace=packages/backend",
+    "build:frontend": "cd packages/frontend && npm run build",
+    "build:backend": "cd packages/backend && npm run build",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "frontend": "npm run dev --workspace=packages/frontend",

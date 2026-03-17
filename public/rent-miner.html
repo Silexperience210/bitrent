@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitRent - Rent Miner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #16213e 100%);
+            color: #e0e6ed;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-section {
+            background: #1a2332;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .form-section h2 {
+            color: #7c3aed;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #a0aec0;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            color: #e0e6ed;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .miner-option {
+            background: #0f1419;
+            border: 2px solid #2a3f5f;
+            border-radius: 4px;
+            padding: 15px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .miner-option:hover {
+            border-color: #00d4ff;
+        }
+
+        .miner-option.selected {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .miner-option h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .miner-stat {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .miner-stat-label {
+            color: #a0aec0;
+        }
+
+        .pool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .pool-option {
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            border-radius: 4px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pool-option:hover {
+            border-color: #00d4ff;
+        }
+
+        .pool-option.selected {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .pool-option h4 {
+            color: #00d4ff;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .pool-fee {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        .cost-breakdown {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid #00d4ff;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .cost-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .cost-line:last-child {
+            border-top: 1px solid #00d4ff;
+            padding-top: 10px;
+            font-weight: bold;
+            color: #00d4ff;
+            font-size: 16px;
+        }
+
+        .cost-label {
+            color: #a0aec0;
+        }
+
+        .cost-value {
+            color: #e0e6ed;
+        }
+
+        button {
+            background: #00d4ff;
+            color: #0f1419;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        button:hover:not(:disabled) {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+        }
+
+        .success-modal {
+            background: #1a2332;
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .success-modal h3 {
+            color: #10b981;
+            margin-bottom: 15px;
+        }
+
+        .rental-details {
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .rental-details strong {
+            color: #00d4ff;
+        }
+
+        code {
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            border-radius: 4px;
+            padding: 10px;
+            display: block;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            color: #10b981;
+            overflow-x: auto;
+        }
+
+        .warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⛏️ Rent a Miner</h1>
+
+        <div id="status"></div>
+
+        <!-- Step 1: Select Miner -->
+        <div class="form-section" id="step1">
+            <h2>Step 1: Select Miner</h2>
+            <div class="grid" id="miners-list">
+                <p style="text-align: center; color: #a0aec0;">Loading miners...</p>
+            </div>
+        </div>
+
+        <!-- Step 2: Select Duration -->
+        <div class="form-section" id="step2" style="display: none;">
+            <h2>Step 2: Rental Duration</h2>
+            <div class="form-group">
+                <label>Duration (minutes)</label>
+                <input type="number" id="duration" min="1" max="1440" value="60" onchange="updateCost()">
+                <small style="color: #a0aec0; margin-top: 5px; display: block;">Min: 1 min | Max: 1 day (1440 min)</small>
+            </div>
+        </div>
+
+        <!-- Step 3: Select Pool -->
+        <div class="form-section" id="step3" style="display: none;">
+            <h2>Step 3: Select Mining Pool</h2>
+            <div class="pool-grid" id="pools-list"></div>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #2a3f5f;">
+                <h3 style="color: #7c3aed; margin-bottom: 15px; font-size: 14px;">Or Use Custom Pool</h3>
+                <div class="form-group">
+                    <label>Custom Pool URL (Stratum Protocol)</label>
+                    <input type="text" id="custom-pool-url" placeholder="stratum+tcp://your-pool.com:3333" onchange="selectCustomPool()">
+                    <small style="color: #a0aec0; margin-top: 5px; display: block;">Leave empty to use preset pools</small>
+                </div>
+                <div class="form-group">
+                    <label>Custom Pool Fee (%)</label>
+                    <input type="number" id="custom-pool-fee" min="0" max="100" step="0.1" value="1" onchange="updateCost()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Payout Address -->
+        <div class="form-section" id="step4" style="display: none;">
+            <h2>Step 4: Bitcoin Payout Address</h2>
+            <div class="form-group">
+                <label>Your Bitcoin Address</label>
+                <input type="text" id="payout-address" placeholder="1A1z7agoat...  or  bc1qar0s..." onchange="updateCost()">
+                <small style="color: #a0aec0; margin-top: 5px; display: block;">P2PKH (1...), P2SH (3...), or Segwit (bc1...)</small>
+            </div>
+
+            <div class="form-group">
+                <label>Worker Name (optional)</label>
+                <input type="text" id="worker-name" placeholder="my-bitaxe-01">
+                <small style="color: #a0aec0; margin-top: 5px; display: block;">Identifies your rental in pool dashboard</small>
+            </div>
+        </div>
+
+        <!-- Step 5: Review & Pay -->
+        <div class="form-section" id="step5" style="display: none;">
+            <h2>Step 5: Review & Payment</h2>
+            
+            <div class="cost-breakdown">
+                <div class="cost-line">
+                    <span class="cost-label">Miner:</span>
+                    <span class="cost-value" id="review-miner">--</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cost-label">Duration:</span>
+                    <span class="cost-value" id="review-duration">--</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cost-label">Pool:</span>
+                    <span class="cost-value" id="review-pool">--</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cost-label">Base Cost:</span>
+                    <span class="cost-value" id="review-base">-- sats</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cost-label">Pool Fee:</span>
+                    <span class="cost-value" id="review-fee">-- sats</span>
+                </div>
+                <div class="cost-line">
+                    <span class="cost-label">TOTAL:</span>
+                    <span id="review-total">-- sats</span>
+                </div>
+            </div>
+
+            <button onclick="createRental()">⚡ Create Rental & Pay</button>
+        </div>
+
+        <!-- Success Screen -->
+        <div id="success-screen" style="display: none;">
+            <div class="success-modal">
+                <h3>✅ Rental Created!</h3>
+                
+                <div class="rental-details">
+                    <p><strong>Rental ID:</strong> <span id="success-rental-id">--</span></p>
+                    <p><strong>Miner:</strong> <span id="success-miner">--</span></p>
+                    <p><strong>Duration:</strong> <span id="success-duration">--</span> minutes</p>
+                    <p><strong>Pool:</strong> <span id="success-pool">--</span></p>
+                    <p><strong>Cost:</strong> <span id="success-cost">--</span> sats</p>
+                </div>
+
+                <h4 style="color: #00d4ff; margin-top: 20px; margin-bottom: 10px;">Mining Configuration:</h4>
+                
+                <div class="rental-details">
+                    <p><strong>Pool URL:</strong></p>
+                    <code id="success-pool-url">--</code>
+                    
+                    <p style="margin-top: 15px;"><strong>Payout Address:</strong></p>
+                    <code id="success-payout">--</code>
+                    
+                    <p style="margin-top: 15px;"><strong>Worker Name:</strong></p>
+                    <code id="success-worker">--</code>
+                    
+                    <p style="margin-top: 15px;"><strong>CGMiner Command:</strong></p>
+                    <code id="success-cgminer">--</code>
+                </div>
+
+                <div class="warning">
+                    ⚠️ <strong>Next Step:</strong> Complete the Lightning payment to activate mining. Once payment confirmed, your Bitaxe will start mining to your address!
+                </div>
+
+                <button onclick="proceedToPayment()" style="background: #7c3aed;">⚡ Proceed to Payment</button>
+                <button onclick="location.reload()" style="background: #a0aec0; color: #0f1419; margin-top: 10px;">← Rent Another</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://workspace-omega-opal.vercel.app/api';
+        let miners = [];
+        let selectedMiner = null;
+        let selectedPool = null;
+        let pools = {
+            'stratum-v2': { name: 'Stratum V2', fee: 1 },
+            'ocean': { name: 'OCEAN', fee: 0.5 },
+            'chauffagistes': { name: 'Chauffagistes-pool.fr', fee: 1.2 }
+        };
+        let currentRental = null;
+
+        async function loadMiners() {
+            try {
+                const res = await fetch(`${API_URL}/mineurs`);
+                const data = await res.json();
+                miners = data.data || [];
+
+                let html = '';
+                miners.forEach(miner => {
+                    const isOnline = miner.status === 'online';
+                    html += `
+                        <div class="miner-option ${isOnline ? '' : 'disabled'}" 
+                             onclick="${isOnline ? `selectMiner('${miner.id}')` : ''}"
+                             style="opacity: ${isOnline ? 1 : 0.5}; cursor: ${isOnline ? 'pointer' : 'not-allowed'};">
+                            <h3>${miner.name}</h3>
+                            <div class="miner-stat">
+                                <span class="miner-stat-label">Hashrate:</span>
+                                <span>${(miner.hashrate || 100)} TH/s</span>
+                            </div>
+                            <div class="miner-stat">
+                                <span class="miner-stat-label">Price:</span>
+                                <span>${(miner.price_per_minute || 500)} sats/min</span>
+                            </div>
+                            <div class="miner-stat">
+                                <span class="miner-stat-label">Status:</span>
+                                <span style="color: ${isOnline ? '#10b981' : '#ef4444'};">
+                                    ${miner.status || 'offline'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('miners-list').innerHTML = html;
+            } catch (error) {
+                showStatus('Failed to load miners: ' + error.message, 'error');
+            }
+        }
+
+        function selectMiner(minerId) {
+            selectedMiner = miners.find(m => m.id === minerId);
+            document.querySelectorAll('.miner-option').forEach(el => el.classList.remove('selected'));
+            event.target.closest('.miner-option').classList.add('selected');
+            
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('step3').style.display = 'block';
+            document.getElementById('step4').style.display = 'block';
+            document.getElementById('step5').style.display = 'block';
+            
+            loadPools();
+            updateCost();
+        }
+
+        function loadPools() {
+            let html = '';
+            Object.entries(pools).forEach(([key, pool]) => {
+                html += `
+                    <div class="pool-option" onclick="selectPool('${key}')">
+                        <h4>${pool.name}</h4>
+                        <div class="pool-fee">${pool.fee}% fee</div>
+                    </div>
+                `;
+            });
+            document.getElementById('pools-list').innerHTML = html;
+        }
+
+        function selectPool(poolKey) {
+            selectedPool = poolKey;
+            document.querySelectorAll('.pool-option').forEach(el => el.classList.remove('selected'));
+            event.target.closest('.pool-option').classList.add('selected');
+            document.getElementById('custom-pool-url').value = '';
+            updateCost();
+        }
+
+        function selectCustomPool() {
+            const customUrl = document.getElementById('custom-pool-url').value.trim();
+            if (customUrl) {
+                selectedPool = 'custom';
+                document.querySelectorAll('.pool-option').forEach(el => el.classList.remove('selected'));
+                updateCost();
+            } else {
+                selectedPool = null;
+            }
+        }
+
+        function getSelectedPoolName() {
+            if (selectedPool === 'custom') {
+                return document.getElementById('custom-pool-url').value || 'Custom Pool';
+            }
+            return pools[selectedPool]?.name || '--';
+        }
+
+        function updateCost() {
+            if (!selectedMiner) return;
+
+            const duration = parseInt(document.getElementById('duration').value) || 60;
+            const pricePerMin = selectedMiner.price_per_minute || 500;
+            const baseCost = pricePerMin * duration;
+            
+            let poolFee = 0;
+            if (selectedPool === 'custom') {
+                const customFee = parseFloat(document.getElementById('custom-pool-fee').value) || 0;
+                poolFee = baseCost * (customFee / 100);
+            } else if (selectedPool) {
+                poolFee = baseCost * (pools[selectedPool].fee / 100);
+            }
+            
+            const totalCost = baseCost + poolFee;
+
+            document.getElementById('review-miner').textContent = selectedMiner.name;
+            document.getElementById('review-duration').textContent = duration + ' min';
+            document.getElementById('review-pool').textContent = getSelectedPoolName();
+            document.getElementById('review-base').textContent = baseCost.toLocaleString() + ' sats';
+            document.getElementById('review-fee').textContent = Math.floor(poolFee).toLocaleString() + ' sats';
+            document.getElementById('review-total').textContent = Math.floor(totalCost).toLocaleString() + ' sats';
+        }
+
+        async function createRental() {
+            const payoutAddress = document.getElementById('payout-address').value;
+            const workerName = document.getElementById('worker-name').value;
+
+            if (!selectedMiner || !selectedPool || !payoutAddress) {
+                showStatus('Please complete all fields', 'error');
+                return;
+            }
+
+            showStatus('Creating rental...', 'loading');
+
+            try {
+                const token = localStorage.getItem('bitrent_token');
+                const duration = parseInt(document.getElementById('duration').value) || 60;
+
+                // Get pool URL
+                const poolUrl = getPoolUrl(selectedPool);
+                const poolName = getSelectedPoolName();
+                
+                // Step 1: Create rental in database
+                const rentalRes = await fetch(`${API_URL}/rentals/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        miner_id: selectedMiner.id,
+                        duration_minutes: duration,
+                        pool_type: selectedPool === 'custom' ? 'custom' : selectedPool,
+                        pool_url: poolUrl,
+                        pool_name: poolName,
+                        payout_address: payoutAddress,
+                        custom_worker_name: workerName
+                    })
+                });
+
+                const rentalData = await rentalRes.json();
+
+                if (!rentalRes.ok) {
+                    throw new Error(rentalData.error || 'Failed to create rental');
+                }
+
+                // Step 2: Configure actual Bitaxe miner via HTTP API
+                showStatus('Configuring miner hardware...', 'loading');
+                
+                const configRes = await fetch(`${API_URL}/mineurs/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        miner_id: selectedMiner.id,
+                        pool_url: poolUrl,
+                        pool_user: payoutAddress,
+                        pool_pass: 'x',
+                        worker_name: workerName
+                    })
+                });
+
+                const configData = await configRes.json();
+
+                if (!configRes.ok) {
+                    console.warn('Miner configuration warning:', configData.error);
+                    // Don't fail - DB rental was created, just miner config may have issues
+                }
+
+                // Step 3: Start mining
+                showStatus('Starting mining...', 'loading');
+                
+                const startRes = await fetch(`${API_URL}/mineurs/control`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        miner_id: selectedMiner.id,
+                        action: 'start'
+                    })
+                });
+
+                const startData = await startRes.json();
+                if (!startRes.ok) {
+                    console.warn('Mining start warning:', startData.error);
+                }
+
+                currentRental = rentalData.data;
+                showSuccess();
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function getPoolUrl(poolKey) {
+            if (poolKey === 'custom') {
+                return document.getElementById('custom-pool-url').value || '';
+            }
+            const poolUrls = {
+                'stratum-v2': 'stratum2+tcp://sv2.ocean.xyz:3333',
+                'ocean': 'stratum+tcp://mine.ocean.xyz:3333',
+                'chauffagistes': 'stratum+tcp://pool.chauffagistes-pool.fr:3333'
+            };
+            return poolUrls[poolKey] || '';
+        }
+
+        function showSuccess() {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step4').style.display = 'none';
+            document.getElementById('step5').style.display = 'none';
+            document.getElementById('status').innerHTML = '';
+
+            document.getElementById('success-rental-id').textContent = currentRental.rental_id;
+            document.getElementById('success-miner').textContent = currentRental.miner_name;
+            document.getElementById('success-duration').textContent = currentRental.duration_minutes;
+            document.getElementById('success-pool').textContent = currentRental.pool_name;
+            document.getElementById('success-cost').textContent = currentRental.total_cost_sats.toLocaleString();
+
+            document.getElementById('success-pool-url').textContent = currentRental.pool_url;
+            document.getElementById('success-payout').textContent = currentRental.payout_address;
+            document.getElementById('success-worker').textContent = currentRental.worker_name;
+            document.getElementById('success-cgminer').textContent = currentRental.base_cost_sats > 0 
+                ? `cgminer -o ${currentRental.pool_url} -u ${currentRental.payout_address}.${currentRental.worker_name} -p x`
+                : '--';
+
+            document.getElementById('success-screen').style.display = 'block';
+        }
+
+        function proceedToPayment() {
+            // In real app, redirect to payment page
+            alert('Redirect to payment page for: ' + currentRental.total_cost_sats + ' sats\n\nRental ID: ' + currentRental.rental_id);
+        }
+
+        function showStatus(message, type) {
+            document.getElementById('status').innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        window.addEventListener('load', loadMiners);
+    </script>
+</body>
+</html>

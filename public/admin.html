@@ -99,6 +99,11 @@
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
 <script>
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
 let editingMinerId = null
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,8 +132,8 @@ async function loadStats() {
             <thead><tr><th>Miner</th><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
             <tbody>${d.recent_rentals.map(r => `
               <tr>
-                <td>${r.miner_name || '—'}</td>
-                <td style="font-family:monospace;font-size:0.8rem;color:var(--text-muted)">${r.user_pubkey}</td>
+                <td>${esc(r.miner_name || '—')}</td>
+                <td style="font-family:monospace;font-size:0.8rem;color:var(--text-muted)">${esc(r.user_pubkey)}</td>
                 <td class="price-btc">${(r.total_sats||0).toLocaleString()} sats</td>
                 <td><span class="badge badge-${r.status}">${r.status}</span></td>
                 <td style="color:var(--text-muted);font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString()}</td>
@@ -138,7 +143,7 @@ async function loadStats() {
         </div>`
     }
   } catch (e) {
-    console.error('Stats error:', e.message)
+    console.error('[admin] Failed to load stats')
   }
 }
 
@@ -159,10 +164,10 @@ async function loadMiners() {
           </tr></thead>
           <tbody>${miners.map(m => `
             <tr>
-              <td><strong>${m.name}</strong></td>
-              <td style="font-family:monospace;font-size:0.82rem;color:var(--text-muted)">${m.ip_address}</td>
-              <td>${m.hashrate_specs} TH/s</td>
-              <td class="price-btc">${m.sats_per_minute} sats/min</td>
+              <td><strong>${esc(m.name)}</strong></td>
+              <td style="font-family:monospace;font-size:0.82rem;color:var(--text-muted)">${esc(m.ip_address)}</td>
+              <td>${esc(m.hashrate_specs)} TH/s</td>
+              <td class="price-btc">${esc(m.sats_per_minute)} sats/min</td>
               <td>
                 <span class="badge badge-${m.status}">${m.status}</span>
                 ${m.currently_rented ? '<span class="badge badge-active" style="margin-left:4px;">Rented</span>' : ''}
@@ -174,7 +179,7 @@ async function loadMiners() {
                   <button class="btn btn-ghost btn-sm" onclick="toggleStatus('${m.id}','${m.status}')">
                     ${m.status === 'online' ? '⏸ Offline' : m.status === 'offline' ? '▶ Online' : '🔧 Maint'}
                   </button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteMiner('${m.id}','${m.name}')">✕</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteMiner('${esc(m.id)}','${esc(m.name)}')">✕</button>
                 </div>
               </td>
             </tr>`).join('')}

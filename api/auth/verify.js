@@ -34,14 +34,20 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Challenge not found or expired. Request a new one.' })
   }
 
+  // Challenge is consumed immediately — delete before verifying so it cannot be retried
+  await supabase.from('challenges').delete().eq('id', challengeRow.id)
+
   // Cryptographic verification (real secp256k1 via nostr-tools)
   const valid = verifyAuthEvent(event, challengeRow.challenge)
   if (!valid) {
+    await supabase.from('audit_logs').insert({
+      action: 'LOGIN_FAILED',
+      resource_type: 'auth',
+      changes: { pubkey: pubkey?.slice(0, 16) + '...', reason: 'invalid_signature' },
+      ip_address: req.headers['x-forwarded-for']?.split(',')[0].trim() || null,
+    })
     return res.status(401).json({ error: 'Invalid Nostr signature' })
   }
-
-  // Challenge is consumed — delete it
-  await supabase.from('challenges').delete().eq('id', challengeRow.id)
 
   // Upsert user in DB
   const isAdmin = ADMIN_PUBKEYS.has(pubkey)

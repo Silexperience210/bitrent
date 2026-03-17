@@ -62,11 +62,12 @@ export default async function handler(req, res) {
         uptime_percentage: uptimeUpdate.toFixed(2),
         last_checked: now,
         updated_at: now,
-        metadata: supabase.rpc ? miner.metadata : {
-          ...miner.metadata,
-          last_hashrate: result.hashrate || null,
-          last_temp: result.temp || null,
-          last_power: result.power || null,
+        metadata: {
+          ...(miner.metadata || {}),
+          last_hashrate: result.hashrate ?? null,
+          last_temp: result.temp ?? null,
+          last_power: result.power ?? null,
+          last_uptime_seconds: result.uptime ?? null,
         },
       })
       .eq('id', miner.id)

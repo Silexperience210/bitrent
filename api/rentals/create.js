@@ -114,7 +114,6 @@ export default async function handler(req, res) {
         pool_name: POOLS[pool_id].name,
         pool_url: POOLS[pool_id].url,
         payout_address,
-        invoice,
         invoice_expires_at: invoiceExpiresAt,
       },
     })

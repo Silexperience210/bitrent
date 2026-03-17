@@ -70,48 +70,8 @@
     <h1>🪨 Available Miners</h1>
     
     <div class="grid">
-      <div class="miner-card">
-        <div class="miner-name">Bitaxe #1</div>
-        <div class="miner-stats">
-          <p>Model: Ultra</p>
-          <p>Hashrate: 100 GH/s</p>
-          <p>Status: <span class="status-online">● Online</span></p>
-        </div>
-        <div class="price">500 ⚡/min</div>
-        <button class="btn">Rent Now</button>
-      </div>
-
-      <div class="miner-card">
-        <div class="miner-name">Bitaxe #2</div>
-        <div class="miner-stats">
-          <p>Model: Pro</p>
-          <p>Hashrate: 95 GH/s</p>
-          <p>Status: <span class="status-online">● Online</span></p>
-        </div>
-        <div class="price">450 ⚡/min</div>
-        <button class="btn">Rent Now</button>
-      </div>
-
-      <div class="miner-card">
-        <div class="miner-name">Bitaxe #3</div>
-        <div class="miner-stats">
-          <p>Model: Standard</p>
-          <p>Hashrate: 80 GH/s</p>
-          <p>Status: <span class="status-offline">● Offline</span></p>
-        </div>
-        <div class="price">400 ⚡/min</div>
-        <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">Unavailable</button>
-      </div>
-
-      <div class="miner-card">
-        <div class="miner-name">Bitaxe #4</div>
-        <div class="miner-stats">
-          <p>Model: Ultra</p>
-          <p>Hashrate: 105 GH/s</p>
-          <p>Status: <span class="status-online">● Online</span></p>
-        </div>
-        <div class="price">550 ⚡/min</div>
-        <button class="btn">Rent Now</button>
+      <div id="minersContainer" class="grid">
+        <p style="text-align: center; color: #a0aec0;">Loading miners...</p>
       </div>
     </div>
 
@@ -124,5 +84,58 @@
       <p>5. Start mining immediately!</p>
     </div>
   </div>
+
+  <script>
+    // Load miners from API
+    async function loadMiners() {
+      try {
+        const response = await fetch('/api/mineurs');
+        const result = await response.json();
+        
+        if (result.status === 'ok' && result.data) {
+          const container = document.getElementById('minersContainer');
+          container.innerHTML = '';
+          
+          result.data.forEach(miner => {
+            const isOnline = miner.status === 'online';
+            const card = document.createElement('div');
+            card.className = 'miner-card';
+            card.innerHTML = `
+              <div class="miner-name">${miner.name}</div>
+              <div class="miner-stats">
+                <p>Model: ${miner.model || 'Unknown'}</p>
+                <p>Hashrate: ${miner.hashrate || 0} GH/s</p>
+                <p>Status: <span class="${isOnline ? 'status-online' : 'status-offline'}">● ${miner.status}</span></p>
+              </div>
+              <div class="price">${miner.price_per_minute} ⚡/min</div>
+              <button class="btn" ${!isOnline ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="rentMiner('${miner.id}', '${miner.name}')">
+                ${isOnline ? 'Rent Now' : 'Unavailable'}
+              </button>
+            `;
+            container.appendChild(card);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading miners:', error);
+        document.getElementById('minersContainer').innerHTML = '<p style="color: #ef4444;">Failed to load miners</p>';
+      }
+    }
+
+    // Rent a miner
+    function rentMiner(minerId, minerName) {
+      alert(`🚀 Starting rental for ${minerName}...\n\nNext steps:\n1. Sign with Nostr wallet\n2. Confirm Lightning payment\n3. Start mining!`);
+      console.log('Renting miner:', minerId);
+      
+      // TODO: Implement actual rental flow
+      // 1. Get Nostr auth challenge
+      // 2. Sign with wallet
+      // 3. Create rental
+      // 4. Generate payment invoice
+      // 5. Display QR code for Lightning payment
+    }
+
+    // Load miners on page load
+    document.addEventListener('DOMContentLoaded', loadMiners);
+  </script>
 </body>
 </html>

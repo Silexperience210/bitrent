@@ -1,0 +1,101 @@
+/**
+ * POST /api/payments/create-invoice
+ * Create Lightning invoice for rental payment
+ */
+
+import { handleCors } from '@/lib/cors.js';
+import { supabase } from '@/lib/supabase.js';
+import * as authMiddleware from '@/lib/auth-middleware.js';
+import * as response from '@/lib/response.js';
+
+export default async function handler(req, res) {
+  // Handle CORS
+  if (await handleCors(req, res)) {
+    return;
+  }
+
+  // Method check
+  if (req.method !== 'POST') {
+    return response.sendError(res, 405, 'MethodNotAllowed', 'Method not allowed');
+  }
+
+  try {
+    // Verify authentication
+    const authResult = authMiddleware.verifyAuth(req);
+    if (!authResult.authenticated) {
+      return response.sendUnauthorized(res, authResult.error);
+    }
+
+    const { rental_id, amount_sats } = req.body;
+
+    if (!rental_id || !amount_sats || amount_sats <= 0) {
+      return response.sendValidationError(res, [
+        'rental_id and amount_sats are required',
+        'amount_sats must be > 0'
+      ]);
+    }
+
+    // Get rental from database
+    const { data: rental, error: rentalError } = await supabase
+      .from('rentals')
+      .select('*')
+      .eq('id', rental_id)
+      .single();
+
+    if (rentalError) {
+      return response.sendNotFound(res, 'Rental not found');
+    }
+
+    // Check if payment already exists
+    const { data: existingPayment } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('rental_id', rental_id)
+      .eq('status', 'confirmed')
+      .single();
+
+    if (existingPayment) {
+      return response.sendError(res, 400, 'PaymentAlreadyConfirmed', 'Payment already confirmed for this rental');
+    }
+
+    // Generate mock BOLT11 invoice
+    // In production, this would call NWC (Nostr Wallet Connect)
+    const timestamp = Math.floor(Date.now() / 1000);
+    const paymentHash = Buffer.from(Math.random().toString()).toString('hex').substring(0, 64);
+    const mockBolt11 = `lnbc${amount_sats}n1p${timestamp}ps${paymentHash}`;
+
+    // Create payment record in database
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .insert([{
+        rental_id,
+        amount_sats,
+        payment_hash: paymentHash,
+        bolt11: mockBolt11,
+        status: 'pending',
+        created_at: new Date(),
+        updated_at: new Date(),
+      }])
+      .select()
+      .single();
+
+    if (paymentError) {
+      console.error('[CREATE_INVOICE] Payment creation error:', paymentError);
+      return response.sendInternalError(res, 'Failed to create invoice');
+    }
+
+    console.log('[CREATE_INVOICE] Invoice created:', payment.id);
+
+    return response.sendSuccess(res, {
+      id: payment.id,
+      rental_id,
+      amount_sats,
+      bolt11: mockBolt11,
+      payment_hash: paymentHash,
+      status: 'pending',
+    }, 201);
+  } catch (error) {
+    console.error('[CREATE_INVOICE] Error:', error);
+    return response.sendInternalError(res, 'Internal server error');
+  }
+}

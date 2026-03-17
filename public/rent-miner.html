@@ -408,8 +408,40 @@
                 <button onclick="location.reload()" style="background: #a0aec0; color: #0f1419; margin-top: 10px;">← Rent Another</button>
             </div>
         </div>
+
+        <!-- Payment Screen -->
+        <div id="payment-screen" style="display: none;">
+            <div class="success-modal">
+                <h3>⚡ Lightning Payment Required</h3>
+                
+                <div class="rental-details">
+                    <p><strong>Rental ID:</strong> <span id="payment-rental-id">--</span></p>
+                    <p><strong>Amount:</strong> <span id="payment-amount">--</span> sats</p>
+                    <p><strong>Status:</strong> <span id="payment-status" style="color: #f59e0b;">⏳ Waiting for payment...</span></p>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0; padding: 20px; background: #0f1419; border-radius: 8px;">
+                    <p style="margin-bottom: 15px; color: #a0aec0;">Scan with your Lightning wallet:</p>
+                    <div id="qr-code" style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
+                        <p style="color: #7c3aed;">Generating QR code...</p>
+                    </div>
+                </div>
+
+                <div class="rental-details">
+                    <p><strong>Invoice (BOLT11):</strong></p>
+                    <code id="payment-invoice" style="word-break: break-all; font-size: 10px;">--</code>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button onclick="checkPaymentStatus()" style="background: #00d4ff;">✓ Check Payment Status</button>
+                    <button onclick="copyInvoice()" style="background: #7c3aed;">📋 Copy Invoice</button>
+                    <button onclick="location.reload()" style="background: #a0aec0; color: #0f1419; margin-top: 10px;">← Back</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         const API_URL = 'https://workspace-omega-opal.vercel.app/api';
         let miners = [];
@@ -669,9 +701,103 @@
             document.getElementById('success-screen').style.display = 'block';
         }
 
-        function proceedToPayment() {
-            // In real app, redirect to payment page
-            alert('Redirect to payment page for: ' + currentRental.total_cost_sats + ' sats\n\nRental ID: ' + currentRental.rental_id);
+        async function proceedToPayment() {
+            if (!currentRental) {
+                showStatus('No rental found', 'error');
+                return;
+            }
+
+            // Hide success screen, show payment screen
+            document.getElementById('success-screen').style.display = 'none';
+            document.getElementById('payment-screen').style.display = 'block';
+
+            // Generate invoice
+            try {
+                const invoiceRes = await fetch(`${API_URL}/payments/create-invoice`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('bitrent_token')}`
+                    },
+                    body: JSON.stringify({
+                        rental_id: currentRental.rental_id,
+                        amount_sats: Math.floor(currentRental.total_cost_sats || 0)
+                    })
+                });
+
+                if (!invoiceRes.ok) {
+                    throw new Error('Failed to create invoice');
+                }
+
+                const invoiceData = await invoiceRes.json();
+                const invoice = invoiceData.data?.bolt11 || invoiceData.bolt11 || '';
+
+                if (!invoice) {
+                    throw new Error('No invoice returned');
+                }
+
+                // Display invoice details
+                document.getElementById('payment-rental-id').textContent = currentRental.rental_id;
+                document.getElementById('payment-amount').textContent = Math.floor(currentRental.total_cost_sats || 0);
+                document.getElementById('payment-invoice').textContent = invoice;
+
+                // Generate QR code
+                const qrContainer = document.getElementById('qr-code');
+                qrContainer.innerHTML = '';
+                
+                new QRCode(qrContainer, {
+                    text: invoice,
+                    width: 256,
+                    height: 256,
+                    colorDark: '#00d4ff',
+                    colorLight: '#0f1419'
+                });
+
+                // Start checking payment status
+                checkPaymentStatus();
+            } catch (error) {
+                document.getElementById('payment-screen').style.display = 'none';
+                document.getElementById('success-screen').style.display = 'block';
+                showStatus('Payment Error: ' + error.message, 'error');
+            }
+        }
+
+        async function checkPaymentStatus() {
+            if (!currentRental) return;
+
+            try {
+                const statusRes = await fetch(`${API_URL}/payments/check-status?rental_id=${currentRental.rental_id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('bitrent_token')}`
+                    }
+                });
+
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    const isPaid = statusData.data?.status === 'confirmed' || statusData.status === 'confirmed';
+
+                    if (isPaid) {
+                        document.getElementById('payment-status').innerHTML = '✅ Payment Confirmed!';
+                        document.getElementById('payment-status').style.color = '#10b981';
+                        showStatus('✅ Mining started! Your Bitaxe is now mining.', 'success');
+                    } else {
+                        document.getElementById('payment-status').innerHTML = '⏳ Waiting for payment...';
+                        // Retry in 5 seconds
+                        setTimeout(checkPaymentStatus, 5000);
+                    }
+                }
+            } catch (error) {
+                console.warn('Status check error:', error.message);
+                // Retry in 5 seconds
+                setTimeout(checkPaymentStatus, 5000);
+            }
+        }
+
+        function copyInvoice() {
+            const invoice = document.getElementById('payment-invoice').textContent;
+            navigator.clipboard.writeText(invoice).then(() => {
+                showStatus('Invoice copied to clipboard!', 'success');
+            });
         }
 
         function showStatus(message, type) {

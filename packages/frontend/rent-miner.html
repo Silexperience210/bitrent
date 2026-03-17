@@ -515,7 +515,8 @@
                 const token = localStorage.getItem('bitrent_token');
                 const duration = parseInt(document.getElementById('duration').value) || 60;
 
-                const res = await fetch(`${API_URL}/rentals/create`, {
+                // Step 1: Create rental in database
+                const rentalRes = await fetch(`${API_URL}/rentals/create`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -530,17 +531,74 @@
                     })
                 });
 
-                const data = await res.json();
+                const rentalData = await rentalRes.json();
 
-                if (!res.ok) {
-                    throw new Error(data.error || 'Failed to create rental');
+                if (!rentalRes.ok) {
+                    throw new Error(rentalData.error || 'Failed to create rental');
                 }
 
-                currentRental = data.data;
+                // Step 2: Configure actual Bitaxe miner via HTTP API
+                showStatus('Configuring miner hardware...', 'loading');
+                
+                const poolUrl = getPoolUrl(selectedPool);
+                const configRes = await fetch(`${API_URL}/mineurs/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        miner_id: selectedMiner.id,
+                        pool_url: poolUrl,
+                        pool_user: payoutAddress,
+                        pool_pass: 'x',
+                        worker_name: workerName
+                    })
+                });
+
+                const configData = await configRes.json();
+
+                if (!configRes.ok) {
+                    console.warn('Miner configuration warning:', configData.error);
+                    // Don't fail - DB rental was created, just miner config may have issues
+                }
+
+                // Step 3: Start mining
+                showStatus('Starting mining...', 'loading');
+                
+                const startRes = await fetch(`${API_URL}/mineurs/control`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        miner_id: selectedMiner.id,
+                        action: 'start'
+                    })
+                });
+
+                const startData = await startRes.json();
+                if (!startRes.ok) {
+                    console.warn('Mining start warning:', startData.error);
+                }
+
+                currentRental = rentalData.data;
                 showSuccess();
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');
             }
+        }
+
+        function getPoolUrl(poolKey) {
+            const poolUrls = {
+                'stratum-v2': 'stratum2+tcp://pool.example.com:3333',
+                'ocean': 'stratum+tcp://mine.ocean.xyz:3333',
+                'foundry': 'stratum+tcp://mining.foundrydigital.com:3333',
+                'luxor': 'stratum+tcp://us.luxor.tech:3333',
+                'antpool': 'stratum+tcp://stratum-na.antpool.com:3333'
+            };
+            return poolUrls[poolKey] || '';
         }
 
         function showSuccess() {

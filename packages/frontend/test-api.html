@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitRent API Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1419;
+            color: #e0e6ed;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #00d4ff;
+        }
+
+        .test-section {
+            background: #1a2332;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #7c3aed;
+        }
+
+        .test-button {
+            background: #00d4ff;
+            color: #0f1419;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .test-button:hover {
+            opacity: 0.8;
+        }
+
+        .result {
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .success {
+            color: #10b981;
+            border-color: #10b981;
+        }
+
+        .error {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .info {
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.ok {
+            background: #10b981;
+        }
+
+        .status-indicator.error {
+            background: #ef4444;
+        }
+
+        .status-indicator.loading {
+            background: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 BitRent API Test Suite</h1>
+
+        <!-- Health Check -->
+        <div class="test-section">
+            <h2>Health Check</h2>
+            <button class="test-button" onclick="testHealth()">Test /api/health</button>
+            <div id="health-result" class="result"></div>
+        </div>
+
+        <!-- Auth -->
+        <div class="test-section">
+            <h2>Authentication</h2>
+            <button class="test-button" onclick="testAuthChallenge()">Get Challenge</button>
+            <div id="auth-result" class="result"></div>
+        </div>
+
+        <!-- Mineurs -->
+        <div class="test-section">
+            <h2>Mineurs (Miners)</h2>
+            <button class="test-button" onclick="testListMiners()">List Miners</button>
+            <div id="mineurs-result" class="result"></div>
+        </div>
+
+        <!-- Rentals -->
+        <div class="test-section">
+            <h2>Rentals</h2>
+            <button class="test-button" onclick="testListRentals()">List Rentals</button>
+            <div id="rentals-result" class="result"></div>
+        </div>
+
+        <!-- System Status -->
+        <div class="test-section">
+            <h2>System Status</h2>
+            <div id="system-status">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://workspace-omega-opal.vercel.app/api';
+
+        function setResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = 'result ' + (isError ? 'error' : 'success');
+        }
+
+        function setLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.textContent = '⏳ Loading...';
+            element.className = 'result info';
+        }
+
+        async function testHealth() {
+            setLoading('health-result');
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                setResult('health-result', data, !response.ok);
+                updateSystemStatus();
+            } catch (error) {
+                setResult('health-result', { error: error.message }, true);
+            }
+        }
+
+        async function testAuthChallenge() {
+            setLoading('auth-result');
+            try {
+                const response = await fetch(`${API_URL}/auth/challenge`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                setResult('auth-result', data, !response.ok);
+            } catch (error) {
+                setResult('auth-result', { error: error.message }, true);
+            }
+        }
+
+        async function testListMiners() {
+            setLoading('mineurs-result');
+            try {
+                const response = await fetch(`${API_URL}/mineurs`);
+                const data = await response.json();
+                setResult('mineurs-result', data, !response.ok);
+            } catch (error) {
+                setResult('mineurs-result', { error: error.message }, true);
+            }
+        }
+
+        async function testListRentals() {
+            setLoading('rentals-result');
+            try {
+                const response = await fetch(`${API_URL}/rentals`);
+                const data = await response.json();
+                setResult('rentals-result', data, !response.ok);
+            } catch (error) {
+                setResult('rentals-result', { error: error.message }, true);
+            }
+        }
+
+        async function updateSystemStatus() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                if (data.checks) {
+                    const status = `
+                        <span class="status-indicator ${data.checks.database === 'ready' ? 'ok' : 'error'}"></span> Database: ${data.checks.database}
+                        <br>
+                        <span class="status-indicator ${data.checks.auth === 'ready' ? 'ok' : 'error'}"></span> Auth: ${data.checks.auth}
+                        <br>
+                        <span class="status-indicator ${data.checks.payments === 'ready' ? 'ok' : 'error'}"></span> Payments: ${data.checks.payments}
+                    `;
+                    document.getElementById('system-status').innerHTML = status;
+                }
+            } catch (error) {
+                document.getElementById('system-status').innerHTML = `<span class="status-indicator error"></span> Error: ${error.message}`;
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            testHealth();
+            updateSystemStatus();
+        });
+    </script>
+</body>
+</html>

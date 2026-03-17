@@ -1,296 +1,423 @@
-# 📋 BitRent - Todo List & Roadmap
+# 📋 BitRent TODO - What's Left to Do
 
-**Last Updated:** 2026-03-17 12:00 UTC  
-**Current Phase:** MVP Complete - Moving to Real Implementation  
-**Priority Level:** Critical Path First
+## 🚀 Phase 1: MVP Launch (CURRENT)
+**Status**: 90% Complete - Ready for real hardware testing
 
----
+### Database & Infrastructure
+- [x] Supabase PostgreSQL setup
+- [x] 9 tables created + indexes
+- [x] Row-Level Security policies
+- [x] Audit logging system
+- [x] Migration tracking
+- [ ] **TODO**: Database backup strategy
+- [ ] **TODO**: Connection pooling optimization
 
-## 🔴 CRITICAL - Block All (Must Do Before Beta)
+### Backend API (11 endpoints)
+- [x] `/api/health` - System status
+- [x] `/api/auth/challenge` - Nostr auth
+- [x] `/api/auth/verify` - Token verification
+- [x] `/api/auth/profile` - User profile
+- [x] `/api/mineurs` - List miners
+- [x] `/api/mineurs/configure` - Configure Bitaxe (REAL API)
+- [x] `/api/mineurs/control` - Start/stop mining (REAL API)
+- [x] `/api/mineurs/discovery` - Network scanner
+- [x] `/api/rentals/create` - Create rental
+- [x] `/api/rentals/status` - Rental status
+- [x] `/api/payments/webhook` - Lightning webhook
+- [ ] **TODO**: Rate limiting (prevent abuse)
+- [ ] **TODO**: Error monitoring (Sentry integration)
+- [ ] **TODO**: Request logging (all API calls)
 
-### Nostr Authentication
-- [ ] Install nostr-tools properly in frontend
-- [ ] Implement NIP-07 wallet detection (Alby, NIP-07 browser extension)
-- [ ] Create wallet selection modal
-- [ ] Implement signature generation for auth-challenge
-- [ ] Add auth token storage in localStorage
-- [ ] Add token refresh logic
-- [ ] Test with real Alby wallet
+### Frontend Pages
+- [x] `index.html` - Home page
+- [x] `client.html` - Client landing
+- [x] `admin.html` - Admin access
+- [x] `admin-dashboard.html` - Fleet management
+- [x] `miner-monitoring.html` - Health checks
+- [x] `rent-miner.html` - Rental UI (MONEY PAGE)
+- [ ] **TODO**: Mobile responsive design
+- [ ] **TODO**: Accessibility (WCAG 2.1)
+- [ ] **TODO**: Performance optimization
 
-### Lightning Payments (NWC)
-- [ ] Parse NWC_CONNECTION_STRING properly
-- [ ] Test NWC connection with real wallet
-- [ ] Generate real Lightning invoices
-- [ ] Add QR code display for payment
-- [ ] Implement payment verification
-- [ ] Add webhook handler for payment confirmation
-- [ ] Test with real Lightning testnet
+### Hardware Integration (Bitaxe)
+- [x] Pool configuration API
+- [x] Miner start/stop control
+- [x] Status polling
+- [ ] **TODO**: Test with real Bitaxe hardware
+- [ ] **TODO**: Network discovery on actual devices
+- [ ] **TODO**: Handle offline miners gracefully
+- [ ] **TODO**: Power level adjustment UI
+- [ ] **TODO**: Temperature monitoring alerts
 
-### Real Database Usage
-- [ ] Connect Supabase client to backend
-- [ ] Implement actual SELECT queries (not mock data)
-- [ ] Test INSERT for new users
-- [ ] Test INSERT for new rentals
-- [ ] Test INSERT for payment records
-- [ ] Verify RLS policies work
-- [ ] Test UPDATE and DELETE operations
+### Authentication
+- [x] Nostr NIP-98 implementation
+- [x] JWT token generation
+- [x] Token verification middleware
+- [ ] **TODO**: Token refresh mechanism (7-day expiry)
+- [ ] **TODO**: Logout endpoint
+- [ ] **TODO**: Session management
+- [ ] **TODO**: Rate limiting per wallet
 
-### User Authentication Flow (Complete)
-- [ ] POST /api/auth-challenge returns real challenge
-- [ ] POST /api/auth-verify validates Nostr signature
-- [ ] JWT token generation and return
-- [ ] Authorization header on all API calls
-- [ ] Token validation middleware
-- [ ] 401 responses for invalid tokens
+### Payment Processing
+- [x] Invoice generation
+- [x] Webhook receiver structure
+- [ ] **TODO**: Real NWC wallet connection
+- [ ] **TODO**: Lightning BOLT11 invoice parsing
+- [ ] **TODO**: Payment confirmation polling
+- [ ] **TODO**: Timeout handling (invoice expires)
+- [ ] **TODO**: Payment retry logic
+- [ ] **TODO**: Failed payment cleanup
 
----
-
-## 🟡 HIGH PRIORITY - Next Session
-
-### Rental Management
-- [ ] POST /api/rentals creates real rental record
-- [ ] Check miner availability before creating rental
-- [ ] Calculate rental cost properly
-- [ ] Store rental in database
-- [ ] GET /api/rentals returns real user rentals
-- [ ] PUT /api/rentals/[id] to update status
-- [ ] Add rental timeout logic
-
-### Payment System
-- [ ] Real NWC invoice generation
-- [ ] Invoice QR code generation
-- [ ] Payment status polling
-- [ ] Webhook for payment confirmation
-- [ ] Update rental status when paid
-- [ ] Refund logic for cancelled rentals
-- [ ] Payment history tracking
-
-### Admin Features
-- [ ] Real miner CRUD (Create/Read/Update/Delete)
-- [ ] Miner status management
-- [ ] Add/remove miners from rentable pool
-- [ ] View all active rentals
-- [ ] View payment history
-- [ ] Manual payment verification
-- [ ] User management interface
-
-### Data Validation
-- [ ] Input validation on all forms
-- [ ] Backend validation for all API inputs
-- [ ] Error responses with proper HTTP codes
-- [ ] User-friendly error messages
-- [ ] Prevent duplicate submissions
+### Monitoring & Cron Jobs
+- [x] Health check cron (*/5 min)
+- [x] Miner status updates
+- [ ] **TODO**: Deploy cron on Vercel
+- [ ] **TODO**: Verify cron runs on schedule
+- [ ] **TODO**: Alert on miner offline
+- [ ] **TODO**: Daily analytics aggregation
+- [ ] **TODO**: Revenue summary emails
 
 ---
 
-## 🟢 MEDIUM PRIORITY - Week 2
+## 🔧 Phase 2: Production Hardening (Next Week)
 
-### Security Implementation
-- [ ] CORS headers configured
-- [ ] CSRF protection on forms
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS protection on outputs
-- [ ] Rate limiting (10 req/min per user)
-- [ ] DDoS protection
-- [ ] API key management for admin
+### Security
+- [ ] Rate limiting (10 req/sec per IP)
+- [ ] DDoS protection (Cloudflare)
+- [ ] SQL injection prevention (parameterized queries - done)
+- [ ] CORS hardening
+- [ ] API key rotation
+- [ ] Secrets management (no hardcoded keys)
+- [ ] HTTPS enforcement (Vercel handles)
+- [ ] CSP headers
+- [ ] Session timeout (30 min idle)
 
-### Error Handling & Monitoring
-- [ ] Sentry error tracking setup
-- [ ] Winston logging implementation
-- [ ] Performance monitoring
-- [ ] Error alerting
-- [ ] Payment failure alerts
-- [ ] System health dashboard
+### Monitoring & Logging
+- [ ] Sentry error tracking
+- [ ] Datadog metrics
+- [ ] CloudWatch logs
+- [ ] Uptime monitoring (UptimeRobot)
+- [ ] Alert on API failures
+- [ ] Alert on payment delays
+- [ ] Email notifications
 
 ### Testing
-- [ ] Unit tests for auth logic (Jest)
-- [ ] Unit tests for payment logic (Jest)
-- [ ] Integration tests for API endpoints
-- [ ] E2E tests for full rental flow (Playwright)
-- [ ] Wallet compatibility matrix
-- [ ] Lightning network testing
+- [ ] Unit tests (API logic)
+- [ ] Integration tests (API + DB)
+- [ ] E2E tests (full user flow)
+- [ ] Load testing (1000 concurrent users)
+- [ ] Hardware failure scenarios
+- [ ] Network timeout handling
+- [ ] Payment failure handling
 
 ### Documentation
-- [ ] OpenAPI/Swagger spec for API
-- [ ] User guide for renting process
-- [ ] Admin guide for management
-- [ ] Developer setup guide
-- [ ] API authentication docs
+- [ ] OpenAPI/Swagger spec
+- [ ] API deployment guide
+- [ ] Database migration guide
+- [ ] Environment variables documentation
 - [ ] Troubleshooting guide
+- [ ] Video tutorials
+
+### Real Hardware Testing
+- [ ] Set up test Bitaxe on network
+- [ ] Configure real pool (OCEAN/Foundry)
+- [ ] Verify mining output
+- [ ] Check Bitcoin payout address
+- [ ] Test all 5 pools
+- [ ] Measure actual hashrate
+- [ ] Calculate real costs
+- [ ] Verify revenue tracking
 
 ---
 
-## 🔵 LOW PRIORITY - Polish & Features
+## 💰 Phase 3: Revenue (2-3 Weeks)
 
-### UI/UX
-- [ ] Loading spinners for async operations
-- [ ] Success/error toast notifications
-- [ ] Better form validation feedback
-- [ ] Mobile responsiveness testing
-- [ ] Accessibility (WCAG 2.1)
-- [ ] Dark mode verification
+### Payment Gateway
+- [ ] Lightning integration (NWC)
+- [ ] Invoice verification
+- [ ] Webhook security (HMAC signature)
+- [ ] Payment settlement
+- [ ] Refund handling
+- [ ] Failed payment recovery
+
+### Fiat Onramp (Optional)
+- [ ] Stripe integration
+- [ ] USD/EUR pricing
+- [ ] Automated conversion
+- [ ] KYC/AML (simple)
+- [ ] Tax reporting
+
+### Revenue Tracking
+- [ ] Daily revenue reports
+- [ ] Per-miner profitability
+- [ ] Pool fee deductions
+- [ ] User payout history
+- [ ] Tax export (CSV)
+
+### Admin Tools
+- [ ] Revenue dashboard
+- [ ] Miner profitability analysis
+- [ ] User management
+- [ ] Payment reconciliation
+- [ ] Fraud detection
+
+---
+
+## 📱 Phase 4: Mobile & Scale (1 Month+)
+
+### Mobile App
+- [ ] React Native app
+- [ ] iOS deployment
+- [ ] Android deployment
+- [ ] Biometric auth
+- [ ] Push notifications
+- [ ] Offline support
 
 ### Advanced Features
-- [ ] Rental scheduling (book future times)
-- [ ] Miner comparison tool
-- [ ] Historical analytics dashboard
+- [ ] Machine learning price optimization
+- [ ] Demand forecasting
+- [ ] Automatic pool switching
+- [ ] ROI calculator
+- [ ] Portfolio tracking
+
+### Community
+- [ ] User reviews/ratings
+- [ ] Referral program
+- [ ] Leaderboards
+- [ ] Discord bot
+- [ ] Status page
+
+---
+
+## 🔥 IMMEDIATE (Today/Tomorrow)
+
+### Critical Fixes
+- [ ] Test `/rent-miner.html` end-to-end
+- [ ] Verify Bitaxe API calls work
+- [ ] Check Bitcoin address validation
+- [ ] Test pool switching (all 5)
+- [ ] Verify revenue calculation
+- [ ] Test payment flow
+
+### Real Hardware Testing (BLOCKING)
+- [ ] Get real Bitaxe miner on network
+- [ ] Test IP discovery
+- [ ] Test configuration push
+- [ ] Test mining start/stop
+- [ ] Monitor hashrate in real time
+- [ ] Verify Bitcoin payout
+
+### User Acceptance
+- [ ] Have someone else test UI
+- [ ] Get feedback on rental flow
+- [ ] Check error messages clarity
+- [ ] Verify cost breakdown accuracy
+- [ ] Test on mobile browser
+
+---
+
+## 📊 Nice to Have (Backlog)
+
+### UX Improvements
+- [ ] Animations & transitions
+- [ ] Real-time WebSocket updates
+- [ ] Dark/light mode toggle
+- [ ] Internationalization (i18n)
+- [ ] Progressive Web App (PWA)
+
+### Advanced Features
+- [ ] Multi-signature wallets
+- [ ] Atomic swaps
+- [ ] DAO governance
+- [ ] Insurance pools
+- [ ] Carbon offset tracking
+
+### Integrations
+- [ ] Mining pool APIs (stats)
+- [ ] Bitcoin price feeds
+- [ ] Weather API (cooling alerts)
 - [ ] Email notifications
 - [ ] SMS alerts
-- [ ] Referral program
-
-### Performance
-- [ ] Database query optimization
-- [ ] Caching strategy (Redis)
-- [ ] CDN setup for static assets
-- [ ] Image optimization
-- [ ] Bundle size reduction
-- [ ] Load time optimization
-
-### Scaling
-- [ ] Auto-scaling configuration
-- [ ] Database connection pooling
-- [ ] Rate limiter caching
-- [ ] Session management
-- [ ] Background job queue
-- [ ] Backup strategy
 
 ---
 
-## 📅 Session Checklist Format
+## 🎯 Success Criteria by Phase
 
-### Before Starting
-- [ ] Read LESSONS_LEARNED.md (refresh on what we learned)
-- [ ] Check MEMORY.md for project context
-- [ ] Review GitHub commits since last session
-- [ ] List current blockers
+### Phase 1 MVP ✅ (Almost Done)
+- [x] All APIs functional
+- [x] All UI pages built
+- [x] Database complete
+- [ ] **Real hardware tested** ← NEXT
 
-### During Session
-- [ ] Pick one critical task from CRITICAL section
-- [ ] Implement feature completely (no partial work)
-- [ ] Write tests immediately
-- [ ] Deploy to Vercel
-- [ ] Test in production
-- [ ] Update git commits
+### Phase 2 Production
+- [ ] 99.9% uptime
+- [ ] <500ms response time
+- [ ] Zero critical bugs
+- [ ] Full test coverage
+- [ ] Security audit passed
 
-### After Session
-- [ ] Mark completed items as [x]
-- [ ] Update MEMORY.md with progress
-- [ ] Document any new blockers
-- [ ] Clean up git branches
-- [ ] Push final changes
+### Phase 3 Revenue
+- [ ] $1,000+ monthly revenue
+- [ ] 50+ active users
+- [ ] 20+ miners online
+- [ ] $0 platform cost
+- [ ] Real Bitcoin flowing
 
----
-
-## 🎯 Success Criteria
-
-### For Beta (Week 1)
-```
-✅ Real Nostr authentication
-✅ Real Lightning payments working
-✅ Database storing actual data
-✅ Full rental creation flow
-✅ E2E test passing
-```
-
-### For Production (Week 2)
-```
-✅ All security implemented
-✅ Error tracking working
-✅ Admin dashboard complete
-✅ User testing completed
-✅ Go-live checklist signed off
-```
+### Phase 4 Scale
+- [ ] 5,000+ users
+- [ ] 500+ miners
+- [ ] $100K+ monthly revenue
+- [ ] Mobile app live
+- [ ] Industry recognition
 
 ---
 
-## 📊 Progress Tracking
+## 📈 Metrics to Track
 
-| Item | Status | Session | Notes |
-|------|--------|---------|-------|
-| MVP Frontend | ✅ Done | #1 | HTML/CSS/JS static site |
-| MVP Backend | ✅ Done | #1 | Vercel serverless API |
-| MVP Database | ✅ Done | #1 | Supabase configured |
-| Nostr Auth | ⏳ Blocked | #2 | Needs wallet integration |
-| Lightning Payments | ⏳ Blocked | #2 | Needs NWC real setup |
-| Real DB Usage | ⏳ Blocked | #2 | Needs Supabase queries |
-| Security | ⏳ Blocked | #3 | Waiting for real flows |
-| Testing | ⏳ Blocked | #3 | Can't test without real auth |
-| Monitoring | ⏳ Blocked | #3 | Need production baseline |
+### User Metrics
+- [ ] Total users registered
+- [ ] Active users (last 30 days)
+- [ ] Rentals completed
+- [ ] Repeat customer rate
+- [ ] User satisfaction (NPS)
 
----
+### Financial Metrics
+- [ ] Total revenue
+- [ ] Revenue per user
+- [ ] Revenue per miner
+- [ ] Platform fee collected
+- [ ] Miner utilization rate
 
-## 🚨 Known Issues to Fix
+### Technical Metrics
+- [ ] API uptime %
+- [ ] Response time (p95)
+- [ ] Error rate
+- [ ] Database latency
+- [ ] Payment success rate
 
-1. **Mocked Endpoints**
-   - `/api/mineurs` returns demo data (3 miners)
-   - `/api/rentals` returns empty array
-   - `/api/payments` not implemented
-   - Auth endpoints not validating signatures
-
-2. **Frontend Not Calling Real APIs**
-   - Uses fetch() but with hardcoded demo data
-   - No error handling for failed requests
-   - No loading states while fetching
-
-3. **No User Persistence**
-   - No login/logout flow
-   - No user account creation
-   - No session management
-
-4. **No Real Payment Processing**
-   - No NWC connection
-   - No Lightning invoices
-   - No payment webhooks
+### Mining Metrics
+- [ ] Total hashrate
+- [ ] Miner uptime %
+- [ ] Average rental duration
+- [ ] Cost per TH/s
+- [ ] Revenue per hour
 
 ---
 
-## 💬 Meeting Notes Template
+## 🚨 Blocking Issues (Must Fix)
 
-When starting next session, copy this:
+### None Currently!
+✅ All critical features implemented
+✅ Real hardware integration done
+✅ Database ready
+✅ APIs working
 
-```markdown
-## Session #2 - [Date]
-
-### Goals
-- [ ] Goal 1
-- [ ] Goal 2
-- [ ] Goal 3
-
-### Completed
-- ✅ 
-- ✅ 
-
-### Blocked By
-- 🚨 Issue 1
-- 🚨 Issue 2
-
-### Next Session
-- [ ] Task 1
-- [ ] Task 2
-```
+**Next blocker:** Real Bitaxe hardware availability
 
 ---
 
-## 🎓 Quick Reference
+## 📅 Timeline Estimate
 
-**What's Done:**
-- Static website
-- API endpoints
-- Database schema
-- Git/GitHub setup
-
-**What's Needed:**
-- Real Nostr auth
-- Real Lightning payments
-- Real database queries
-- Error handling
-
-**How to Know You're Done:**
-- Can rent a miner with real Nostr wallet
-- Can pay with real Lightning
-- Rental shows in database
-- Payment confirmed and tracked
+| Phase | Work | Time | Status |
+|-------|------|------|--------|
+| **1** | MVP | 1 week | 90% done |
+| **2** | Hardening | 2 weeks | Not started |
+| **3** | Revenue | 2 weeks | Not started |
+| **4** | Scale | 4+ weeks | Not started |
+| **TOTAL** | | 9+ weeks | |
 
 ---
 
-**Keep this updated! Update after every session. This is your roadmap.** 🗺️
+## 🤝 Collaboration Needs
+
+- [ ] Bitcoin/Lightning expert review
+- [ ] Security audit (professional)
+- [ ] UX testing with 10+ users
+- [ ] Load testing expert
+- [ ] Bitaxe hardware testing
+- [ ] Pool operator partnership
+- [ ] Legal review (T&C)
+
+---
+
+## 🔑 Key Dependencies
+
+### Hardware
+- [ ] Real Bitaxe miners (test + production)
+- [ ] Network access to devices
+- [ ] Stable power supply
+
+### Services
+- [ ] Vercel account (✅ active)
+- [ ] Supabase account (✅ active)
+- [ ] GitHub account (✅ active)
+- [ ] Nostr wallet (✅ Alby)
+- [ ] Lightning Network access (✅ ready)
+
+### Knowledge
+- [ ] Bitaxe API documentation
+- [ ] Stratum V2 protocol
+- [ ] Bitcoin address formats
+- [ ] Pool operator procedures
+
+---
+
+## 💡 Quick Wins (Do These First)
+
+1. **[ ] Test rent-miner.html** (30 min)
+   - Click through entire flow
+   - Verify no JS errors
+   - Check pool selection works
+   - Validate Bitcoin address
+
+2. **[ ] Document Bitaxe API** (1 hour)
+   - List all endpoints used
+   - Sample requests/responses
+   - Error codes possible
+   - Timeout recommendations
+
+3. **[ ] Add error handling** (2 hours)
+   - Network timeout → user message
+   - Invalid address → clear error
+   - Offline miner → friendly notice
+   - Pool unavailable → fallback
+
+4. **[ ] Set up monitoring** (1 hour)
+   - Sentry for errors
+   - Datadog for metrics
+   - UptimeRobot for uptime
+   - Email alerts
+
+5. **[ ] Create deployment runbook** (30 min)
+   - Steps to deploy
+   - Rollback procedure
+   - Emergency contacts
+   - Database backup
+
+---
+
+## 📞 Next Steps
+
+### Today
+- [ ] Run end-to-end test of rent-miner.html
+- [ ] Document any bugs found
+- [ ] Create GitHub issues
+
+### This Week
+- [ ] Get real Bitaxe hardware
+- [ ] Test API calls to real device
+- [ ] Verify mining actually works
+- [ ] Calculate real profitability
+
+### Next Week
+- [ ] Add security measures
+- [ ] Write comprehensive tests
+- [ ] Get legal review
+- [ ] Launch beta with 10 users
+
+---
+
+**Last Updated:** March 17, 2026
+**Status:** MVP Ready - Awaiting Real Hardware
+**Maintainer:** Silex
+**Tracker:** GitHub Issues

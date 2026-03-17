@@ -5,7 +5,6 @@
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "inet";
 
 -- ============================================================================
 -- ENUMS
@@ -83,7 +82,7 @@ CREATE TABLE IF NOT EXISTS mineurs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   owner_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
-  ip_address INET NOT NULL UNIQUE,
+  ip_address VARCHAR(45) NOT NULL UNIQUE,
   port INTEGER DEFAULT 80,
   hashrate_specs NUMERIC NOT NULL,
   sats_per_minute INTEGER NOT NULL,
@@ -180,7 +179,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   resource_type TEXT NOT NULL,
   resource_id UUID,
   changes JSONB,
-  ip_address INET,
+  ip_address VARCHAR(45),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

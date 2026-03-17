@@ -405,9 +405,6 @@
         let pools = {
             'stratum-v2': { name: 'Stratum V2', fee: 1 },
             'ocean': { name: 'OCEAN', fee: 0.5 },
-            'foundry': { name: 'Foundry USA', fee: 1.5 },
-            'luxor': { name: 'Luxor', fee: 2 },
-            'antpool': { name: 'AntPool', fee: 2.5 },
             'chauffagistes': { name: 'Chauffagistes-pool.fr', fee: 1.2 }
         };
         let currentRental = null;
@@ -595,9 +592,6 @@
             const poolUrls = {
                 'stratum-v2': 'stratum2+tcp://sv2.ocean.xyz:3333',
                 'ocean': 'stratum+tcp://mine.ocean.xyz:3333',
-                'foundry': 'stratum+tcp://stratum.foundrydigital.com:3333',
-                'luxor': 'stratum+tcp://us1.luxor.tech:3333',
-                'antpool': 'stratum+tcp://stratum-na.antpool.com:3333',
                 'chauffagistes': 'stratum+tcp://pool.chauffagistes-pool.fr:3333'
             };
             return poolUrls[poolKey] || '';

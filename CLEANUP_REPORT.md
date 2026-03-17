@@ -40,12 +40,14 @@
 'stratum-v2': 'stratum2+tcp://pool.example.com:3333',
 
 // AFTER (real pool endpoints):
-'stratum-v2': 'stratum2+tcp://sv2.ocean.xyz:3333',
-'ocean': 'stratum+tcp://mine.ocean.xyz:3333',
-'foundry': 'stratum+tcp://stratum.foundrydigital.com:3333',
-'luxor': 'stratum+tcp://us1.luxor.tech:3333',
-'antpool': 'stratum+tcp://stratum-na.antpool.com:3333',
-'chauffagistes': 'stratum+tcp://pool.chauffagistes-pool.fr:3333'  // NEW ✨
+'stratum-v2': 'stratum2+tcp://sv2.ocean.xyz:3333' (1% fee)
+'ocean': 'stratum+tcp://mine.ocean.xyz:3333' (0.5% fee)
+'chauffagistes': 'stratum+tcp://pool.chauffagistes-pool.fr:3333' (1.2% fee)
+
+// REMOVED:
+// - Foundry USA (stratum.foundrydigital.com)
+// - Luxor (us1.luxor.tech)
+// - AntPool (stratum-na.antpool.com)
 ```
 
 ## Data Cleanup Script Created

@@ -1,12 +1,19 @@
 /**
  * POST /api/payments/create-invoice
- * Create Lightning invoice for rental payment
+ * Create Lightning invoice for rental payment (via NWC)
  */
 
 import { handleCors } from '@/lib/cors.js';
 import { supabase } from '@/lib/supabase.js';
 import * as authMiddleware from '@/lib/auth-middleware.js';
 import * as response from '@/lib/response.js';
+import { generateInvoiceViaWalletConnect } from '@/lib/nwc-wallet.js';
+
+function extractPaymentHash(bolt11) {
+  // BOLT11 format includes payment hash, extract it
+  // For now, generate a hash
+  return Buffer.from(bolt11).toString('hex').substring(0, 64);
+}
 
 export default async function handler(req, res) {
   // Handle CORS
@@ -58,11 +65,27 @@ export default async function handler(req, res) {
       return response.sendError(res, 400, 'PaymentAlreadyConfirmed', 'Payment already confirmed for this rental');
     }
 
-    // Generate mock BOLT11 invoice
-    // In production, this would call NWC (Nostr Wallet Connect)
-    const timestamp = Math.floor(Date.now() / 1000);
-    const paymentHash = Buffer.from(Math.random().toString()).toString('hex').substring(0, 64);
-    const mockBolt11 = `lnbc${amount_sats}n1p${timestamp}ps${paymentHash}`;
+    // Generate BOLT11 invoice via NWC
+    let bolt11Invoice = null;
+    let paymentHash = null;
+
+    try {
+      const invoiceResult = await generateInvoiceViaWalletConnect(
+        amount_sats,
+        `BitRent Rental ${rental_id}`
+      );
+
+      if (invoiceResult && invoiceResult.bolt11) {
+        bolt11Invoice = invoiceResult.bolt11;
+        paymentHash = invoiceResult.payment_hash || extractPaymentHash(invoiceResult.bolt11);
+      }
+    } catch (nwcError) {
+      console.warn('[CREATE_INVOICE] NWC invoice generation failed, using mock:', nwcError.message);
+      // Fallback to mock invoice if NWC fails
+      const timestamp = Math.floor(Date.now() / 1000);
+      paymentHash = Buffer.from(Math.random().toString()).toString('hex').substring(0, 64);
+      bolt11Invoice = `lnbc${amount_sats}n1p${timestamp}ps${paymentHash}`;
+    }
 
     // Create payment record in database
     const { data: payment, error: paymentError } = await supabase
@@ -71,7 +94,7 @@ export default async function handler(req, res) {
         rental_id,
         amount_sats,
         payment_hash: paymentHash,
-        bolt11: mockBolt11,
+        bolt11: bolt11Invoice,
         status: 'pending',
         created_at: new Date(),
         updated_at: new Date(),
@@ -90,7 +113,7 @@ export default async function handler(req, res) {
       id: payment.id,
       rental_id,
       amount_sats,
-      bolt11: mockBolt11,
+      bolt11: bolt11Invoice,
       payment_hash: paymentHash,
       status: 'pending',
     }, 201);

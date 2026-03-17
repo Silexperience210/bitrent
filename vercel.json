@@ -1,4 +1,7 @@
 {
   "version": 2,
-  "public": "public"
+  "public": true,
+  "buildCommand": "npm run build --workspaces",
+  "installCommand": "npm install",
+  "outputDirectory": "packages/frontend"
 }

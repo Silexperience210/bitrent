@@ -303,3 +303,5 @@ MIT - See LICENSE file
 ---
 
 **Ready? Start with [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** 🎯
+#   R e d e p l o y   t r i g g e r  
+ 

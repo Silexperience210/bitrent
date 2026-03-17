@@ -1,9 +1,17 @@
-export default function handler(req, res) {
-  res.status(200).json({
-    status: 'ok',
-    service: 'BitRent Backend',
-    version: '1.0.0',
+import { supabase } from './_lib/supabase.js'
+import { setCors } from './_lib/cors.js'
+
+export default async function handler(req, res) {
+  if (setCors(req, res)) return
+
+  const { error } = await supabase.from('challenges').select('id').limit(1)
+  const dbOk = !error
+
+  return res.status(dbOk ? 200 : 503).json({
+    ok: dbOk,
+    service: 'BitRent API',
+    version: '2.0.0',
     timestamp: new Date().toISOString(),
-    checks: { database: 'ready', auth: 'ready', payments: 'ready' }
-  });
+    db: dbOk ? 'connected' : 'error',
+  })
 }

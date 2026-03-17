@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "public": true,
-  "outputDirectory": "packages/frontend",
+  "outputDirectory": "public",
   "installCommand": "npm install",
   "crons": [
     {
-      "path": "/api/cron/miner-health-check",
+      "path": "/api/cron/expire-rentals",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
       "schedule": "*/5 * * * *"
     }
   ]

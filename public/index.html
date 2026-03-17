@@ -3,132 +3,337 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitRent - Mining Rental Platform</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f1f2e 0%, #1a3a4a 100%);
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .container { max-width: 800px; text-align: center; }
-    h1 {
-      font-size: 4em;
-      margin-bottom: 20px;
-      background: linear-gradient(135deg, #ffa500, #ff6b6b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .status {
-      background: rgba(16, 185, 129, 0.1);
-      border: 2px solid #10b981;
-      border-radius: 8px;
-      padding: 30px;
-      margin: 30px 0;
-    }
-    .badge { display: inline-block; background: #10b981; color: white; padding: 10px 20px; border-radius: 4px; font-weight: bold; margin-bottom: 15px; }
-    .links { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin: 30px 0; }
-    .btn {
-      display: inline-block;
-      padding: 12px 24px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: all 0.3s ease;
-      border: 2px solid;
-    }
-    .btn-primary { background: #ffa500; color: #000; border-color: #ffa500; }
-    .btn-primary:hover { background: #ff8c00; transform: translateY(-2px); }
-    .btn-secondary { background: transparent; color: #10b981; border-color: #10b981; }
-    .btn-secondary:hover { background: #10b981; color: white; transform: translateY(-2px); }
-    .info {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 30px;
-      text-align: left;
-    }
-    .info h3 { color: #ffa500; margin-bottom: 15px; }
-    .info p { margin: 10px 0; color: #a0aec0; }
-    .api-status {
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid #3b82f6;
-      border-radius: 6px;
-      padding: 15px;
-      margin-top: 20px;
-      font-family: monospace;
-      text-align: left;
-    }
-    .api-status .status-ok { color: #10b981; }
-    .api-status .status-error { color: #ef4444; }
-    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: #64748b; font-size: 0.9em; }
-  </style>
+  <title>BitRent — Rent Bitcoin Miners with Lightning</title>
+  <meta name="description" content="Rent Bitaxe ASIC miners instantly. Pay with Lightning. No KYC.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-  <div class="container">
-    <h1>⚡ BitRent</h1>
-    <p style="font-size: 1.2em; color: #a0aec0; margin-bottom: 30px;">Production-Ready Bitaxe Mining Rental Platform</p>
 
-    <div class="status">
-      <div class="badge">✅ LIVE ON VERCEL</div>
-      <p>Frontend & Backend deployed</p>
-      <p>Database configured on Supabase</p>
-    </div>
-
-    <div class="links">
-      <a href="/admin.html" class="btn btn-primary">🔐 Admin Dashboard</a>
-      <a href="/client.html" class="btn btn-secondary">👤 Client App</a>
-    </div>
-
-    <div class="info">
-      <h3>🚀 Features</h3>
-      <p>✅ Real Nostr Authentication (NIP-98)</p>
-      <p>✅ Lightning Network Payments (NWC)</p>
-      <p>✅ Mining Rental Marketplace</p>
-      <p>✅ Per-Minute Billing in Satoshis</p>
-      <p>✅ Admin Miner Management</p>
-      <p>✅ Zero Monthly Cost</p>
-    </div>
-
-    <div class="api-status">
-      <h3 style="color: #3b82f6; margin-bottom: 10px;">🔌 API Status</h3>
-      <p>Frontend: <span class="status-ok">✓ Online</span></p>
-      <p>Backend: <span id="api-status" class="status-error">⟳ Checking...</span></p>
-      <p style="margin-top: 10px; font-size: 0.9em; color: #64748b;">API Endpoint: /api/health</p>
-    </div>
-
-    <div class="footer">
-      <p>Built with ⚡ Lightning • 🔑 Nostr • 🪨 Bitaxe</p>
-      <p><a href="https://github.com/Silexperience210/bitrent" style="color: #10b981; text-decoration: none;">GitHub Repository</a></p>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">⚡ Bit<span>Rent</span></a>
+    <div class="nav-links" id="nav-auth">
+      <button class="btn btn-primary btn-sm" id="btn-login">Login with Nostr</button>
     </div>
   </div>
+</nav>
 
-  <script>
-    // Check API health
-    async function checkAPI() {
-      try {
-        const response = await fetch('/api/health');
-        if (response.ok) {
-          const data = await response.json();
-          document.getElementById('api-status').innerHTML = '✓ Online';
-          document.getElementById('api-status').className = 'status-ok';
-        } else {
-          throw new Error('API returned ' + response.status);
-        }
-      } catch (error) {
-        console.log('API check failed:', error.message);
-        document.getElementById('api-status').innerHTML = '✗ Offline';
-      }
+<section class="hero">
+  <div style="max-width:600px; padding:20px; width:100%;">
+    <h1 class="hero-title">Rent Bitcoin Miners<br><span>with Lightning</span></h1>
+    <p class="hero-sub">Pay in sats. Mine instantly. No KYC, no sign-up, no commitment. Just Bitcoin.</p>
+    <div class="hero-btns">
+      <button class="btn btn-primary btn-lg" id="btn-hero">Get Started</button>
+      <a href="#miners" class="btn btn-ghost btn-lg">Browse Miners ↓</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num" id="stat-online">—</div><div class="hero-stat-lbl">Online Miners</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">⚡</div><div class="hero-stat-lbl">Lightning Only</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">0 KYC</div><div class="hero-stat-lbl">Privacy First</div></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--bg1); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div class="container">
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Instant Lightning Payments</div><p class="feature-text">Scan a QR code, pay in sats. Mining starts seconds after confirmation.</p></div>
+      <div class="feature-card"><div class="feature-icon">🔐</div><div class="feature-title">Nostr Authentication</div><p class="feature-text">Login with your Nostr key. No email, no password, no data collected.</p></div>
+      <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-title">Your Pool, Your Address</div><p class="feature-text">Choose your pool and payout address. The miner hashes for you.</p></div>
+      <div class="feature-card"><div class="feature-icon">🎛️</div><div class="feature-title">Flexible Durations</div><p class="feature-text">Rent for 15 minutes or 24 hours. Scale anytime.</p></div>
+      <div class="feature-card"><div class="feature-icon">🛡️</div><div class="feature-title">Real Bitaxe Hardware</div><p class="feature-text">Open-source ASIC miners. Verified uptime. Transparent hashrates.</p></div>
+      <div class="feature-card"><div class="feature-icon">🌐</div><div class="feature-title">Permissionless</div><p class="feature-text">No bank account. No verification. Anyone with Lightning can mine.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="miners" class="page">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Available Miners</h2>
+      <span id="miners-count" class="badge badge-online" style="display:none"></span>
+    </div>
+    <div id="miners-grid" class="miners-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);">Loading miners...</div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="container"><p>⚡ BitRent — Bitcoin mining rentals powered by Lightning &amp; Nostr</p></div></footer>
+
+<!-- Login Modal -->
+<div class="modal-backdrop" id="modal-login">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Login with Nostr</span>
+      <button class="modal-close" id="btn-close-login">×</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:20px;">
+      Sign in using your Nostr identity. No email, no password.
+    </p>
+    <div id="login-error" class="alert alert-error" style="display:none"></div>
+    <div class="wallet-opts">
+      <div class="wallet-opt" id="opt-extension">
+        <span class="wallet-opt-icon">🦎</span>
+        <div>
+          <div>Browser Extension</div>
+          <div class="wallet-opt-sub">Alby, nos2x, or any NIP-07 extension</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:16px;font-size:0.78rem;color:var(--text-dim);text-align:center;">
+      No extension? Install <a href="https://getalby.com" target="_blank">Alby</a> — free &amp; open source.
+    </p>
+  </div>
+</div>
+
+<!-- Rent Modal -->
+<div class="modal-backdrop" id="modal-rent">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title" id="rent-title">Rent Miner</span>
+      <button class="modal-close" id="btn-close-rent">×</button>
+    </div>
+
+    <!-- Step 1: Config -->
+    <div id="step-config">
+      <div class="form-group">
+        <label>Duration</label>
+        <div class="duration-grid" id="duration-grid">
+          <div class="duration-btn selected" data-mins="15">15<span class="duration-label">min</span></div>
+          <div class="duration-btn" data-mins="30">30<span class="duration-label">min</span></div>
+          <div class="duration-btn" data-mins="60">1<span class="duration-label">hour</span></div>
+          <div class="duration-btn" data-mins="360">6<span class="duration-label">h</span></div>
+          <div class="duration-btn" data-mins="720">12<span class="duration-label">h</span></div>
+          <div class="duration-btn" data-mins="1440">24<span class="duration-label">h</span></div>
+          <div class="duration-btn" data-mins="custom">✏️<span class="duration-label">custom</span></div>
+        </div>
+        <input type="number" id="custom-dur" min="1" max="1440" placeholder="Minutes (1–1440)" style="display:none;margin-top:8px;">
+      </div>
+      <div class="form-group">
+        <label>Mining Pool</label>
+        <select id="pool-select">
+          <option value="ocean">OCEAN Pool (transparent, non-custodial)</option>
+          <option value="public">Public Pool (open source)</option>
+          <option value="foundry">Foundry USA</option>
+          <option value="luxor">Luxor</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Bitcoin Payout Address</label>
+        <input type="text" id="payout-addr" placeholder="bc1q... or 1... or 3...">
+      </div>
+      <div class="price-summary">
+        <div class="price-row"><span>Duration</span><span id="s-dur">—</span></div>
+        <div class="price-row"><span>Rate</span><span id="s-rate">—</span></div>
+        <div class="price-row"><span>Total</span><span class="price-btc" id="s-total">—</span></div>
+      </div>
+      <div id="rent-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary" style="width:100%" id="btn-create-rental">⚡ Create Invoice</button>
+    </div>
+
+    <!-- Step 2: Pay -->
+    <div id="step-pay" style="display:none;">
+      <div class="alert alert-info">Scan with your Lightning wallet to activate mining.</div>
+      <div class="qr-wrapper" style="margin-top:16px;">
+        <div id="qrcode"></div>
+        <div class="invoice-copy">
+          <div class="invoice-text" id="inv-text"></div>
+          <button class="btn btn-secondary btn-sm" id="btn-copy">Copy</button>
+        </div>
+        <div class="payment-status-row">
+          <div class="spinner" id="pay-spin"></div>
+          <span id="pay-msg">Waiting for payment...</span>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px;" id="btn-back">← Change config</button>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="step-success" style="display:none;text-align:center;padding:24px 0;">
+      <div style="font-size:3rem;margin-bottom:12px;">⛏️</div>
+      <h3 style="margin-bottom:8px;">Mining Started!</h3>
+      <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:24px;">Your miner is hashing. Monitor it on the dashboard.</p>
+      <a href="/dashboard.html" class="btn btn-primary" style="width:100%">Open Dashboard →</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+<script>
+let selectedMiner = null, selectedMins = 15, rentalId = null, pollTimer = null
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateNav()
+  loadMiners()
+  bindEvents()
+})
+
+function updateNav() {
+  const u = Auth.getUser()
+  if (!u) return
+  document.getElementById('nav-auth').innerHTML =
+    `<span class="nav-user">${u.pubkey.slice(0,10)}…</span>` +
+    (u.is_admin ? `<a href="/admin.html" class="btn btn-secondary btn-sm">Admin</a>` : '') +
+    `<a href="/dashboard.html" class="btn btn-secondary btn-sm">Dashboard</a>` +
+    `<button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Logout</button>`
+}
+
+async function loadMiners() {
+  try {
+    const { miners } = await api.get('/api/miners')
+    renderMiners(miners)
+    const n = miners.filter(m => m.available).length
+    const el = document.getElementById('miners-count')
+    el.textContent = `${n} available`; el.style.display = ''
+    document.getElementById('stat-online').textContent = n
+  } catch (e) {
+    document.getElementById('miners-grid').innerHTML =
+      `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><div class="empty-title">Failed to load miners</div><div class="empty-text">${e.message}</div></div>`
+  }
+}
+
+function renderMiners(miners) {
+  const g = document.getElementById('miners-grid')
+  if (!miners.length) {
+    g.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⛏️</div><div class="empty-title">No miners online</div><div class="empty-text">Check back soon.</div></div>`
+    return
+  }
+  g.innerHTML = miners.map(m => {
+    const safe = JSON.stringify(m).replace(/"/g, '&quot;')
+    return `
+    <div class="miner-card${m.available ? '' : ' unavailable'}">
+      <div class="miner-header">
+        <div><div class="miner-name">${m.name}</div><div class="miner-model">${m.model || 'Bitaxe'}</div></div>
+        <span class="badge ${m.available ? 'badge-online' : 'badge-rented'}">${m.available ? 'Available' : 'Rented'}</span>
+      </div>
+      <div class="miner-stats">
+        <div><div class="miner-stat-label">Hashrate</div><div class="miner-stat-value">${m.hashrate_ths} TH/s</div></div>
+        <div><div class="miner-stat-label">Price</div><div class="miner-stat-value btc">${m.sats_per_minute} sats/min</div></div>
+        <div><div class="miner-stat-label">Uptime</div><div class="miner-stat-value">${m.uptime_percentage}%</div></div>
+        <div><div class="miner-stat-label">Per Hour</div><div class="miner-stat-value btc">${m.sats_per_hour.toLocaleString()} sats</div></div>
+      </div>
+      ${m.available
+        ? `<button class="btn btn-primary" style="width:100%" onclick="rentMiner('${safe}')">⚡ Rent Now</button>`
+        : `<button class="btn btn-ghost" style="width:100%" disabled>Currently Occupied</button>`}
+    </div>`
+  }).join('')
+}
+
+function rentMiner(safeJson) {
+  const miner = JSON.parse(safeJson.replace(/&quot;/g, '"'))
+  if (!Auth.isLoggedIn()) { selectedMiner = miner; openModal('modal-login'); return }
+  selectedMiner = miner
+  document.getElementById('rent-title').textContent = `Rent ${miner.name}`
+  showStep('config')
+  updateSummary()
+  openModal('modal-rent')
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open') }
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+
+function showStep(s) {
+  ['config','pay','success'].forEach(n => {
+    document.getElementById(`step-${n}`).style.display = n === s ? '' : 'none'
+  })
+}
+
+function updateSummary() {
+  if (!selectedMiner) return
+  const m = selectedMins
+  document.getElementById('s-dur').textContent = m >= 60 ? `${m/60}h` : `${m} min`
+  document.getElementById('s-rate').textContent = `${selectedMiner.sats_per_minute} sats/min`
+  document.getElementById('s-total').textContent = `${(selectedMiner.sats_per_minute * m).toLocaleString()} sats`
+}
+
+async function doLogin() {
+  const errEl = document.getElementById('login-error')
+  errEl.style.display = 'none'
+  try {
+    await Auth.login()
+    closeModal('modal-login')
+    updateNav()
+    if (selectedMiner) {
+      document.getElementById('rent-title').textContent = `Rent ${selectedMiner.name}`
+      showStep('config'); updateSummary(); openModal('modal-rent')
     }
-    
-    checkAPI();
-    setInterval(checkAPI, 30000); // Check every 30 seconds
-  </script>
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = '' }
+}
+
+async function createRental() {
+  const errEl = document.getElementById('rent-err')
+  errEl.style.display = 'none'
+  const addr = document.getElementById('payout-addr').value.trim()
+  const pool = document.getElementById('pool-select').value
+  if (!addr) { errEl.textContent = 'Enter your Bitcoin payout address.'; errEl.style.display = ''; return }
+  const btn = document.getElementById('btn-create-rental')
+  btn.disabled = true; btn.textContent = 'Creating invoice...'
+  try {
+    const data = await api.post('/api/rentals/create', {
+      miner_id: selectedMiner.id, duration_minutes: selectedMins,
+      pool_id: pool, payout_address: addr
+    })
+    rentalId = data.rental_id
+    showStep('pay')
+    document.getElementById('inv-text').textContent = data.invoice
+    document.getElementById('qrcode').innerHTML = ''
+    new QRCode(document.getElementById('qrcode'), {
+      text: `lightning:${data.invoice}`, width: 220, height: 220,
+      colorDark: '#000', colorLight: '#fff'
+    })
+    pollTimer = setInterval(pollPayment, CONFIG.POLL_MS)
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = '' }
+  finally { btn.disabled = false; btn.textContent = '⚡ Create Invoice' }
+}
+
+async function pollPayment() {
+  try {
+    const d = await api.get(`/api/rentals/status?id=${rentalId}`)
+    if (d.status === 'active') {
+      clearInterval(pollTimer)
+      document.getElementById('pay-spin').style.display = 'none'
+      document.getElementById('pay-msg').textContent = '✅ Payment confirmed!'
+      setTimeout(() => showStep('success'), 900)
+    }
+  } catch {}
+}
+
+function bindEvents() {
+  document.getElementById('btn-login').onclick = () => openModal('modal-login')
+  document.getElementById('btn-hero').onclick = () => Auth.isLoggedIn() ? (window.location.href='/dashboard.html') : openModal('modal-login')
+  document.getElementById('btn-close-login').onclick = () => closeModal('modal-login')
+  document.getElementById('btn-close-rent').onclick = () => { clearInterval(pollTimer); closeModal('modal-rent') }
+  document.getElementById('opt-extension').onclick = doLogin
+  document.getElementById('btn-create-rental').onclick = createRental
+  document.getElementById('btn-back').onclick = () => { clearInterval(pollTimer); showStep('config') }
+  document.getElementById('btn-copy').onclick = () => {
+    navigator.clipboard.writeText(document.getElementById('inv-text').textContent)
+    document.getElementById('btn-copy').textContent = 'Copied!'
+    setTimeout(() => { document.getElementById('btn-copy').textContent = 'Copy' }, 2000)
+  }
+  document.getElementById('duration-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-mins]'); if (!btn) return
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'))
+    btn.classList.add('selected')
+    const v = btn.dataset.mins
+    const ci = document.getElementById('custom-dur')
+    if (v === 'custom') { ci.style.display = ''; ci.focus(); selectedMins = parseInt(ci.value) || 15 }
+    else { ci.style.display = 'none'; selectedMins = parseInt(v) }
+    updateSummary()
+  })
+  document.getElementById('custom-dur').addEventListener('input', e => {
+    selectedMins = Math.min(1440, Math.max(1, parseInt(e.target.value) || 1))
+    updateSummary()
+  })
+  ;['modal-login','modal-rent'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open') })
+  })
+}
+</script>
 </body>
 </html>

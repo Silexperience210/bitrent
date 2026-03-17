@@ -1,10 +1,20 @@
 {
   "name": "bitrent",
-  "version": "1.0.0",
-  "description": "BitRent - Bitaxe Mining Rental Platform",
+  "version": "2.0.0",
+  "description": "BitRent - Bitcoin Mining Rental Marketplace",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "dev": "echo 'Development mode'",
-    "build": "echo 'Static site - no build needed'"
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build step'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "jsonwebtoken": "^9.0.0",
+    "nostr-tools": "^2.7.2",
+    "ws": "^8.18.0"
   }
 }

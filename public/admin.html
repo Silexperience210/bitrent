@@ -3,168 +3,256 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - BitRent</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f1f2e 0%, #1a3a4a 100%);
-      color: #fff;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .navbar {
-      background: rgba(0,0,0,0.2);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding: 15px;
-      margin-bottom: 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-radius: 8px;
-    }
-    .navbar a { color: #ffa500; text-decoration: none; font-weight: bold; }
-    .container { max-width: 1200px; margin: 0 auto; }
-    h1 { color: #ffa500; margin-bottom: 30px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-    .card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 20px;
-    }
-    .card h3 { color: #10b981; margin-bottom: 15px; }
-    .stat { font-size: 2em; font-weight: bold; color: #ffa500; }
-    .btn {
-      display: inline-block;
-      background: #ffa500;
-      color: #000;
-      padding: 10px 20px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: bold;
-      margin-top: 15px;
-      transition: all 0.3s ease;
-    }
-    .btn:hover { background: #ff8c00; transform: translateY(-2px); }
-  </style>
+  <title>BitRent — Admin</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-  <div class="navbar">
-    <h2>BitRent Admin</h2>
-    <a href="/">← Back to Home</a>
-  </div>
 
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">⚡ Bit<span>Rent</span></a>
+    <div class="nav-links">
+      <span class="nav-badge admin">Admin</span>
+      <a href="/dashboard.html" class="btn btn-ghost btn-sm">Dashboard</a>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
   <div class="container">
-    <h1>📊 Admin Dashboard</h1>
-    
-    <div class="grid">
-      <div class="card">
-        <h3>Active Miners</h3>
-        <div class="stat" id="minerCount">-</div>
-        <p>Miners available for rental</p>
-        <button class="btn" onclick="refreshMiners()">Refresh</button>
-      </div>
+    <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:32px;">Admin Panel</h1>
 
-      <div class="card">
-        <h3>Active Rentals</h3>
-        <div class="stat" id="rentalCount">-</div>
-        <p>Currently renting</p>
-        <button class="btn" onclick="viewRentals()">View Rentals</button>
-      </div>
+    <!-- Platform Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Miners</div><div class="stat-value" id="s-total-miners">—</div></div>
+      <div class="stat-card"><div class="stat-label">Online</div><div class="stat-value" id="s-online">—</div></div>
+      <div class="stat-card"><div class="stat-label">Active Rentals</div><div class="stat-value" id="s-active">—</div></div>
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="s-users">—</div></div>
+      <div class="stat-card"><div class="stat-label">Monthly Revenue</div><div class="stat-value btc" id="s-rev">—</div><div class="stat-sub">sats (30d)</div></div>
+    </div>
 
-      <div class="card">
-        <h3>API Health</h3>
-        <div class="stat" id="healthStatus">?</div>
-        <p id="healthMsg">Checking...</p>
-        <button class="btn" onclick="checkHealth()">Check Now</button>
-      </div>
-
-      <div class="card">
-        <h3>System Status</h3>
-        <div class="stat" id="systemStatus">✓</div>
-        <p id="systemMsg">All systems operational</p>
-        <button class="btn" onclick="viewSystem()">View Details</button>
+    <!-- Miners Management -->
+    <div class="section-header">
+      <h2 class="section-title">Miners</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="loadStats(); loadMiners()">↻ Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Miner</button>
       </div>
     </div>
 
-    <div style="margin-top: 50px; padding: 20px; background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 8px;">
-      <h3 style="color: #3b82f6; margin-bottom: 10px;">⚙️ Real-Time Data</h3>
-      <p id="systemInfo" style="color: #a0aec0;">Connecting to API...</p>
+    <div id="miners-container">
+      <div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>
+    </div>
+
+    <!-- Recent Rentals -->
+    <div class="section-header" style="margin-top:40px;">
+      <h2 class="section-title">Recent Rentals</h2>
+    </div>
+    <div id="rentals-container">
+      <div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>
     </div>
   </div>
+</div>
 
-  <script>
-    // Check API health
-    async function checkHealth() {
-      try {
-        const response = await fetch('/api/health');
-        const data = await response.json();
-        document.getElementById('healthStatus').textContent = '✓';
-        document.getElementById('healthMsg').textContent = 'API: ' + data.status;
-        return data.status === 'ok';
-      } catch (error) {
-        document.getElementById('healthStatus').textContent = '✗';
-        document.getElementById('healthMsg').textContent = 'API Error';
-        console.error('Health check failed:', error);
-        return false;
-      }
+<!-- Add/Edit Miner Modal -->
+<div class="modal-backdrop" id="modal-miner">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="miner-modal-title">Add Miner</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="miner-form-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Bitaxe Gamma #1">
+    </div>
+    <div class="form-group">
+      <label>IP Address</label>
+      <input type="text" id="f-ip" placeholder="192.168.1.x">
+    </div>
+    <div class="form-group">
+      <label>Port</label>
+      <input type="number" id="f-port" value="80">
+    </div>
+    <div class="form-group">
+      <label>Hashrate (TH/s)</label>
+      <input type="number" id="f-hashrate" step="0.01" placeholder="e.g. 0.6">
+    </div>
+    <div class="form-group">
+      <label>Price (sats/minute)</label>
+      <input type="number" id="f-sats" placeholder="e.g. 10">
+    </div>
+    <div class="form-group">
+      <label>Model (optional)</label>
+      <input type="text" id="f-model" placeholder="e.g. Bitaxe Gamma BM1397">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" id="btn-save-miner" onclick="saveMiner()">Save Miner</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let editingMinerId = null
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!Auth.requireAdmin()) return
+  loadStats()
+  loadMiners()
+})
+
+async function loadStats() {
+  try {
+    const d = await api.get('/api/admin/stats')
+    document.getElementById('s-total-miners').textContent = d.miners.total
+    document.getElementById('s-online').textContent = d.miners.online
+    document.getElementById('s-active').textContent = d.rentals.active
+    document.getElementById('s-users').textContent = d.users.total
+    document.getElementById('s-rev').textContent = (d.revenue.monthly_sats || 0).toLocaleString()
+
+    // Recent rentals table
+    const rc = document.getElementById('rentals-container')
+    if (!d.recent_rentals?.length) {
+      rc.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No rentals yet</div></div>`
+    } else {
+      rc.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Miner</th><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>${d.recent_rentals.map(r => `
+              <tr>
+                <td>${r.miner_name || '—'}</td>
+                <td style="font-family:monospace;font-size:0.8rem;color:var(--text-muted)">${r.user_pubkey}</td>
+                <td class="price-btc">${(r.total_sats||0).toLocaleString()} sats</td>
+                <td><span class="badge badge-${r.status}">${r.status}</span></td>
+                <td style="color:var(--text-muted);font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString()}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`
     }
+  } catch (e) {
+    console.error('Stats error:', e.message)
+  }
+}
 
-    // Load miners count
-    async function loadMinersCount() {
-      try {
-        const response = await fetch('/api/mineurs');
-        const data = await response.json();
-        if (data.status === 'ok') {
-          document.getElementById('minerCount').textContent = data.count || 0;
-        }
-      } catch (error) {
-        console.error('Error loading miners:', error);
-      }
+async function loadMiners() {
+  try {
+    const { miners } = await api.get('/api/admin/miners')
+    const c = document.getElementById('miners-container')
+    if (!miners.length) {
+      c.innerHTML = `<div class="empty"><div class="empty-icon">⛏️</div><div class="empty-title">No miners added yet</div><div class="empty-text"><button class="btn btn-primary btn-sm" onclick="openAddModal()">Add your first miner</button></div></div>`
+      return
     }
+    c.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>IP</th><th>Hashrate</th><th>Price</th>
+            <th>Status</th><th>Uptime</th><th>Revenue</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${miners.map(m => `
+            <tr>
+              <td><strong>${m.name}</strong></td>
+              <td style="font-family:monospace;font-size:0.82rem;color:var(--text-muted)">${m.ip_address}</td>
+              <td>${m.hashrate_specs} TH/s</td>
+              <td class="price-btc">${m.sats_per_minute} sats/min</td>
+              <td>
+                <span class="badge badge-${m.status}">${m.status}</span>
+                ${m.currently_rented ? '<span class="badge badge-active" style="margin-left:4px;">Rented</span>' : ''}
+              </td>
+              <td>${parseFloat(m.uptime_percentage||0).toFixed(1)}%</td>
+              <td class="price-btc">${(m.total_revenue_sats||0).toLocaleString()}</td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-ghost btn-sm" onclick="toggleStatus('${m.id}','${m.status}')">
+                    ${m.status === 'online' ? '⏸ Offline' : m.status === 'offline' ? '▶ Online' : '🔧 Maint'}
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteMiner('${m.id}','${m.name}')">✕</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`
+  } catch (e) {
+    document.getElementById('miners-container').innerHTML = `<div class="alert alert-error">${e.message}</div>`
+  }
+}
 
-    // Load rentals count
-    async function loadRentalsCount() {
-      try {
-        const response = await fetch('/api/rentals');
-        const data = await response.json();
-        if (data.status === 'ok') {
-          document.getElementById('rentalCount').textContent = data.count || 0;
-        }
-      } catch (error) {
-        console.error('Error loading rentals:', error);
-      }
-    }
+async function toggleStatus(id, currentStatus) {
+  const next = currentStatus === 'online' ? 'offline' : currentStatus === 'offline' ? 'online' : 'online'
+  try {
+    await api.patch(`/api/admin/miners?id=${id}`, { status: next })
+    loadMiners()
+  } catch (e) {
+    alert(`Error: ${e.message}`)
+  }
+}
 
-    // Refresh miners
-    function refreshMiners() {
-      loadMinersCount();
-      alert('✅ Miners refreshed!');
-    }
+async function deleteMiner(id, name) {
+  if (!confirm(`Delete miner "${name}"? This cannot be undone.`)) return
+  try {
+    await api.delete(`/api/admin/miners?id=${id}`)
+    loadMiners()
+    loadStats()
+  } catch (e) {
+    alert(`Cannot delete: ${e.message}`)
+  }
+}
 
-    // View rentals
-    function viewRentals() {
-      alert('📋 Active Rentals:\n\n- 5 miners currently rented\n- 2 pending payments\n- 3 completed rentals');
-    }
+function openAddModal() {
+  editingMinerId = null
+  document.getElementById('miner-modal-title').textContent = 'Add Miner'
+  document.getElementById('miner-form-error').style.display = 'none'
+  ;['f-name','f-ip','f-hashrate','f-sats','f-model'].forEach(id => {
+    document.getElementById(id).value = ''
+  })
+  document.getElementById('f-port').value = 80
+  document.getElementById('modal-miner').classList.add('open')
+}
 
-    // View system
-    function viewSystem() {
-      alert('🔧 System Status:\n\n✓ Database: Connected\n✓ API: Responding\n✓ Payments: Ready\n✓ Auth: Configured');
-    }
+function closeModal() {
+  document.getElementById('modal-miner').classList.remove('open')
+}
 
-    // Initialize dashboard
-    async function initDashboard() {
-      const healthOk = await checkHealth();
-      await loadMinersCount();
-      await loadRentalsCount();
-      
-      const info = `✓ API Status: ${healthOk ? 'Connected' : 'Disconnected'}\n✓ Timestamp: ${new Date().toLocaleString()}\n✓ Environment: Production`;
-      document.getElementById('systemInfo').textContent = info;
-    }
+async function saveMiner() {
+  const errEl = document.getElementById('miner-form-error')
+  errEl.style.display = 'none'
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    ip_address: document.getElementById('f-ip').value.trim(),
+    port: parseInt(document.getElementById('f-port').value) || 80,
+    hashrate_specs: parseFloat(document.getElementById('f-hashrate').value),
+    sats_per_minute: parseInt(document.getElementById('f-sats').value),
+    metadata: { model: document.getElementById('f-model').value.trim() || 'Bitaxe' },
+  }
+  if (!body.name || !body.ip_address || !body.hashrate_specs || !body.sats_per_minute) {
+    errEl.textContent = 'All fields except model are required.'; errEl.style.display = ''; return
+  }
+  const btn = document.getElementById('btn-save-miner')
+  btn.disabled = true; btn.textContent = 'Saving...'
+  try {
+    await api.post('/api/admin/miners', body)
+    closeModal()
+    loadMiners()
+    loadStats()
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = ''
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Miner'
+  }
+}
 
-    // Load on page load
-    document.addEventListener('DOMContentLoaded', initDashboard);
-  </script>
+document.getElementById('modal-miner').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal()
+})
+</script>
 </body>
 </html>

@@ -2,5 +2,11 @@
   "version": 2,
   "public": true,
   "outputDirectory": "packages/frontend",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/miner-health-check",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

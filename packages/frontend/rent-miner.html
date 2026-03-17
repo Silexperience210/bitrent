@@ -306,6 +306,19 @@
         <div class="form-section" id="step3" style="display: none;">
             <h2>Step 3: Select Mining Pool</h2>
             <div class="pool-grid" id="pools-list"></div>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #2a3f5f;">
+                <h3 style="color: #7c3aed; margin-bottom: 15px; font-size: 14px;">Or Use Custom Pool</h3>
+                <div class="form-group">
+                    <label>Custom Pool URL (Stratum Protocol)</label>
+                    <input type="text" id="custom-pool-url" placeholder="stratum+tcp://your-pool.com:3333" onchange="selectCustomPool()">
+                    <small style="color: #a0aec0; margin-top: 5px; display: block;">Leave empty to use preset pools</small>
+                </div>
+                <div class="form-group">
+                    <label>Custom Pool Fee (%)</label>
+                    <input type="number" id="custom-pool-fee" min="0" max="100" step="0.1" value="1" onchange="updateCost()">
+                </div>
+            </div>
         </div>
 
         <!-- Step 4: Payout Address -->
@@ -478,7 +491,26 @@
             selectedPool = poolKey;
             document.querySelectorAll('.pool-option').forEach(el => el.classList.remove('selected'));
             event.target.closest('.pool-option').classList.add('selected');
+            document.getElementById('custom-pool-url').value = '';
             updateCost();
+        }
+
+        function selectCustomPool() {
+            const customUrl = document.getElementById('custom-pool-url').value.trim();
+            if (customUrl) {
+                selectedPool = 'custom';
+                document.querySelectorAll('.pool-option').forEach(el => el.classList.remove('selected'));
+                updateCost();
+            } else {
+                selectedPool = null;
+            }
+        }
+
+        function getSelectedPoolName() {
+            if (selectedPool === 'custom') {
+                return document.getElementById('custom-pool-url').value || 'Custom Pool';
+            }
+            return pools[selectedPool]?.name || '--';
         }
 
         function updateCost() {
@@ -487,12 +519,20 @@
             const duration = parseInt(document.getElementById('duration').value) || 60;
             const pricePerMin = selectedMiner.price_per_minute || 500;
             const baseCost = pricePerMin * duration;
-            const poolFee = selectedPool ? baseCost * (pools[selectedPool].fee / 100) : 0;
+            
+            let poolFee = 0;
+            if (selectedPool === 'custom') {
+                const customFee = parseFloat(document.getElementById('custom-pool-fee').value) || 0;
+                poolFee = baseCost * (customFee / 100);
+            } else if (selectedPool) {
+                poolFee = baseCost * (pools[selectedPool].fee / 100);
+            }
+            
             const totalCost = baseCost + poolFee;
 
             document.getElementById('review-miner').textContent = selectedMiner.name;
             document.getElementById('review-duration').textContent = duration + ' min';
-            document.getElementById('review-pool').textContent = selectedPool ? pools[selectedPool].name : '--';
+            document.getElementById('review-pool').textContent = getSelectedPoolName();
             document.getElementById('review-base').textContent = baseCost.toLocaleString() + ' sats';
             document.getElementById('review-fee').textContent = Math.floor(poolFee).toLocaleString() + ' sats';
             document.getElementById('review-total').textContent = Math.floor(totalCost).toLocaleString() + ' sats';
@@ -513,6 +553,10 @@
                 const token = localStorage.getItem('bitrent_token');
                 const duration = parseInt(document.getElementById('duration').value) || 60;
 
+                // Get pool URL
+                const poolUrl = getPoolUrl(selectedPool);
+                const poolName = getSelectedPoolName();
+                
                 // Step 1: Create rental in database
                 const rentalRes = await fetch(`${API_URL}/rentals/create`, {
                     method: 'POST',
@@ -523,7 +567,9 @@
                     body: JSON.stringify({
                         miner_id: selectedMiner.id,
                         duration_minutes: duration,
-                        pool_type: selectedPool,
+                        pool_type: selectedPool === 'custom' ? 'custom' : selectedPool,
+                        pool_url: poolUrl,
+                        pool_name: poolName,
                         payout_address: payoutAddress,
                         custom_worker_name: workerName
                     })
@@ -538,7 +584,6 @@
                 // Step 2: Configure actual Bitaxe miner via HTTP API
                 showStatus('Configuring miner hardware...', 'loading');
                 
-                const poolUrl = getPoolUrl(selectedPool);
                 const configRes = await fetch(`${API_URL}/mineurs/configure`, {
                     method: 'POST',
                     headers: {
@@ -589,6 +634,9 @@
         }
 
         function getPoolUrl(poolKey) {
+            if (poolKey === 'custom') {
+                return document.getElementById('custom-pool-url').value || '';
+            }
             const poolUrls = {
                 'stratum-v2': 'stratum2+tcp://sv2.ocean.xyz:3333',
                 'ocean': 'stratum+tcp://mine.ocean.xyz:3333',

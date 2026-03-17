@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BitRent - Payment Flow Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #16213e 100%);
+            color: #e0e6ed;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .payment-card {
+            background: #1a2332;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .step {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+
+        .step:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: #7c3aed;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step-number.done {
+            background: #10b981;
+        }
+
+        .step-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .step-content {
+            margin-left: 42px;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+
+        .miner-select {
+            margin-top: 20px;
+            padding: 20px;
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #a0aec0;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        select, input {
+            width: 100%;
+            background: #1a2332;
+            border: 1px solid #2a3f5f;
+            color: #e0e6ed;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .cost-breakdown {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid #00d4ff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .cost-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .cost-total {
+            border-top: 1px solid #00d4ff;
+            padding-top: 8px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        button {
+            background: #00d4ff;
+            color: #0f1419;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        button:hover:not(:disabled) {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #7c3aed;
+            margin-top: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .status.info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+        }
+
+        .spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .invoice-display {
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2a3f5f;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #00d4ff;
+            border-bottom-color: #00d4ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ BitRent Payment Flow</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('demo')">🎬 Demo</button>
+            <button class="tab" onclick="switchTab('test')">🧪 Test API</button>
+        </div>
+
+        <!-- Demo Tab -->
+        <div id="demo" class="tab-content active">
+            <div class="payment-card">
+                <div class="step">
+                    <div>
+                        <span class="step-number" id="step1-num">1</span>
+                        <span class="step-title">Select Miner & Duration</span>
+                    </div>
+                    <div class="step-content">
+                        <div class="miner-select">
+                            <div class="form-group">
+                                <label>Choose Miner</label>
+                                <select id="miner-select" onchange="updateCost()">
+                                    <option value="">Loading miners...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Rental Duration (minutes)</label>
+                                <input type="number" id="duration" value="60" min="1" max="1440" onchange="updateCost()">
+                            </div>
+
+                            <div class="cost-breakdown">
+                                <div class="cost-line">
+                                    <span>Price per minute:</span>
+                                    <span id="price-per-min">-- sats</span>
+                                </div>
+                                <div class="cost-line">
+                                    <span>Duration:</span>
+                                    <span id="duration-display">60 min</span>
+                                </div>
+                                <div class="cost-line cost-total">
+                                    <span>Total cost:</span>
+                                    <span id="total-cost">-- sats</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div>
+                        <span class="step-number" id="step2-num">2</span>
+                        <span class="step-title">Connect Wallet & Authenticate</span>
+                    </div>
+                    <div class="step-content">
+                        <div id="auth-status" class="status info">
+                            👤 Not authenticated. Click below to connect your Nostr wallet.
+                        </div>
+                        <button class="secondary" id="auth-button" onclick="authenticate()">
+                            🔐 Connect Nostr Wallet
+                        </button>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div>
+                        <span class="step-number" id="step3-num">3</span>
+                        <span class="step-title">Create Rental & Get Invoice</span>
+                    </div>
+                    <div class="step-content">
+                        <div id="rental-status" class="status info">
+                            ⏳ Waiting for authentication...
+                        </div>
+                        <button id="rental-button" onclick="createRental()" disabled>
+                            📝 Create Rental
+                        </button>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div>
+                        <span class="step-number" id="step4-num">4</span>
+                        <span class="step-title">Pay Lightning Invoice</span>
+                    </div>
+                    <div class="step-content">
+                        <div id="payment-status" class="status info">
+                            ⏳ Waiting for rental creation...
+                        </div>
+                        <div id="invoice-display" style="display: none;">
+                            <div style="margin-bottom: 10px; font-size: 12px; color: #a0aec0;">
+                                Lightning Invoice:
+                            </div>
+                            <div class="invoice-display" id="invoice-text"></div>
+                        </div>
+                        <button id="payment-button" onclick="payInvoice()" disabled>
+                            ⚡ Pay Invoice
+                        </button>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div>
+                        <span class="step-number" id="step5-num">5</span>
+                        <span class="step-title">Verify Payment</span>
+                    </div>
+                    <div class="step-content">
+                        <div id="verify-status" class="status info">
+                            ⏳ Waiting for payment...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Tab -->
+        <div id="test" class="tab-content">
+            <div class="payment-card">
+                <h2 style="margin-bottom: 20px; color: #00d4ff;">API Test Suite</h2>
+                
+                <div class="form-group">
+                    <label>Test Endpoint</label>
+                    <select id="test-endpoint">
+                        <option value="/mineurs">GET /mineurs (List all miners)</option>
+                        <option value="/auth/challenge">POST /auth/challenge (Get auth challenge)</option>
+                        <option value="/rentals">GET /rentals (List rentals)</option>
+                        <option value="/payments">GET /payments (List payments)</option>
+                    </select>
+                </div>
+
+                <button onclick="runTest()">▶️ Run Test</button>
+
+                <div id="test-result" style="margin-top: 20px; display: none;">
+                    <div style="margin-bottom: 10px; color: #a0aec0; font-size: 12px;">Response:</div>
+                    <div class="invoice-display" id="test-output"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://workspace-omega-opal.vercel.app/api';
+        let miners = [];
+        let selectedMiner = null;
+        let isAuthenticated = false;
+        let currentRentalId = null;
+        let currentInvoiceHash = null;
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Load miners
+        async function loadMiners() {
+            try {
+                const res = await fetch(`${API_URL}/mineurs`);
+                const data = await res.json();
+                miners = data.data;
+
+                const select = document.getElementById('miner-select');
+                select.innerHTML = miners.map((m, i) => 
+                    `<option value="${i}">${m.name} (${m.price_per_minute} sats/min)</option>`
+                ).join('');
+
+                selectedMiner = miners[0];
+                updateCost();
+            } catch (error) {
+                console.error('Error loading miners:', error);
+            }
+        }
+
+        // Update cost preview
+        function updateCost() {
+            const minerIdx = document.getElementById('miner-select').value;
+            selectedMiner = miners[minerIdx];
+            const duration = parseInt(document.getElementById('duration').value) || 60;
+
+            const pricePerMin = selectedMiner.price_per_minute || 500;
+            const totalCost = duration * pricePerMin;
+
+            document.getElementById('price-per-min').textContent = pricePerMin.toLocaleString() + ' sats';
+            document.getElementById('duration-display').textContent = duration + ' min';
+            document.getElementById('total-cost').textContent = totalCost.toLocaleString() + ' sats';
+        }
+
+        // Authenticate
+        async function authenticate() {
+            try {
+                setStatus('auth-status', 'loading', '⏳ Connecting wallet...');
+                
+                // Simulate auth (in real app, use nostr-tools)
+                if (!window.nostr) {
+                    throw new Error('Nostr wallet not found. Install Alby extension.');
+                }
+
+                const pubkey = await window.nostr.getPublicKey();
+                localStorage.setItem('bitrent_pubkey', pubkey);
+                
+                isAuthenticated = true;
+                updateStepUI();
+                setStatus('auth-status', 'success', 
+                    `✅ Connected: ${pubkey.substring(0, 16)}...`);
+            } catch (error) {
+                setStatus('auth-status', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        // Create rental
+        async function createRental() {
+            try {
+                setStatus('rental-status', 'loading', '<span class="spinner">⏳</span> Creating rental...');
+                
+                // Simulate rental creation (in real app, call API)
+                const duration = parseInt(document.getElementById('duration').value) || 60;
+                currentRentalId = 'rental_' + Date.now();
+                
+                // Generate mock invoice
+                currentInvoiceHash = 'lnbc' + Math.random().toString(36).substring(2, 15);
+                
+                setStatus('rental-status', 'success', `✅ Rental created: ${currentRentalId}`);
+                
+                // Show invoice
+                document.getElementById('invoice-display').style.display = 'block';
+                document.getElementById('invoice-text').textContent = currentInvoiceHash;
+                
+                // Enable payment button
+                document.getElementById('payment-button').disabled = false;
+                updateStepUI();
+            } catch (error) {
+                setStatus('rental-status', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        // Pay invoice
+        async function payInvoice() {
+            try {
+                setStatus('payment-status', 'loading', '<span class="spinner">⚡</span> Sending payment...');
+                
+                // In real app, sign with nostr wallet and send
+                // Simulate successful payment
+                setTimeout(() => {
+                    setStatus('payment-status', 'success', '✅ Payment received by wallet');
+                    setStatus('verify-status', 'loading', '<span class="spinner">🔍</span> Verifying payment...');
+                    
+                    // Simulate verification
+                    setTimeout(() => {
+                        setStatus('verify-status', 'success', '✅ Payment confirmed! Rental active.');
+                        updateStepUI();
+                    }, 2000);
+                }, 1000);
+            } catch (error) {
+                setStatus('payment-status', 'error', `❌ ${error.message}`);
+            }
+        }
+
+        function setStatus(elementId, type, message) {
+            const el = document.getElementById(elementId);
+            el.className = `status ${type}`;
+            el.innerHTML = message;
+        }
+
+        function updateStepUI() {
+            const steps = [
+                { num: 'step1-num', done: true },
+                { num: 'step2-num', done: isAuthenticated },
+                { num: 'step3-num', done: currentRentalId },
+                { num: 'step4-num', done: currentInvoiceHash },
+                { num: 'step5-num', done: false }
+            ];
+
+            steps.forEach((step, i) => {
+                const el = document.getElementById(step.num);
+                if (step.done) {
+                    el.classList.add('done');
+                    el.textContent = '✅';
+                }
+            });
+
+            document.getElementById('rental-button').disabled = !isAuthenticated;
+        }
+
+        // Test API endpoint
+        async function runTest() {
+            try {
+                const endpoint = document.getElementById('test-endpoint').value;
+                const method = endpoint.includes('challenge') ? 'POST' : 'GET';
+                
+                const res = await fetch(`${API_URL}${endpoint}`, { method });
+                const data = await res.json();
+
+                document.getElementById('test-result').style.display = 'block';
+                document.getElementById('test-output').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('test-result').style.display = 'block';
+                document.getElementById('test-output').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Init
+        window.addEventListener('load', loadMiners);
+    </script>
+</body>
+</html>

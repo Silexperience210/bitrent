@@ -68,3 +68,5 @@ docs/.cache/
 
 # Performance monitoring
 perf_logs/
+
+.vercel

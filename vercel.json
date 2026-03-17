@@ -1,13 +1,4 @@
 {
   "version": 2,
-  "public": "public",
-  "buildCommand": "npm install --legacy-peer-deps",
-  "env": {
-    "SUPABASE_URL": "",
-    "SUPABASE_SERVICE_KEY": "",
-    "SUPABASE_ANON_KEY": "",
-    "JWT_SECRET": "",
-    "NODE_ENV": "production",
-    "PORT": "3000"
-  }
+  "public": "public"
 }

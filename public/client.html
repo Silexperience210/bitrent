@@ -1,586 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
-    <title>BitRent - Marketplace</title>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rent Miners - BitRent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f1f2e 0%, #1a3a4a 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .navbar {
+      background: rgba(0,0,0,0.2);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 15px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 8px;
+    }
+    .navbar a { color: #ffa500; text-decoration: none; font-weight: bold; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #ffa500; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .miner-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+    .miner-card:hover {
+      border-color: #10b981;
+      background: rgba(16,185,129,0.1);
+      transform: translateY(-5px);
+    }
+    .miner-name { font-size: 1.3em; font-weight: bold; color: #10b981; margin-bottom: 10px; }
+    .miner-stats { margin: 15px 0; font-size: 0.9em; color: #a0aec0; }
+    .price { font-size: 1.5em; color: #ffa500; font-weight: bold; margin: 10px 0; }
+    .btn {
+      display: block;
+      width: 100%;
+      background: #10b981;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 15px;
+    }
+    .btn:hover { background: #059669; transform: translateY(-2px); }
+    .status-online { color: #10b981; }
+    .status-offline { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h2>BitRent Marketplace</h2>
+    <a href="/">← Back to Home</a>
+  </div>
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="css/main.css" />
-    <link rel="stylesheet" href="css/modern.css" />
+  <div class="container">
+    <h1>🪨 Available Miners</h1>
+    
+    <div class="grid">
+      <div class="miner-card">
+        <div class="miner-name">Bitaxe #1</div>
+        <div class="miner-stats">
+          <p>Model: Ultra</p>
+          <p>Hashrate: 100 GH/s</p>
+          <p>Status: <span class="status-online">● Online</span></p>
+        </div>
+        <div class="price">500 ⚡/min</div>
+        <button class="btn">Rent Now</button>
+      </div>
 
-    <style>
-      /* Page Layout */
-      .page-header {
-        background-color: var(--bg-secondary);
-        border-bottom: 1px solid var(--border-color);
-        padding: var(--spacing-8) 0;
-        margin-bottom: var(--spacing-8);
-      }
+      <div class="miner-card">
+        <div class="miner-name">Bitaxe #2</div>
+        <div class="miner-stats">
+          <p>Model: Pro</p>
+          <p>Hashrate: 95 GH/s</p>
+          <p>Status: <span class="status-online">● Online</span></p>
+        </div>
+        <div class="price">450 ⚡/min</div>
+        <button class="btn">Rent Now</button>
+      </div>
 
-      .page-title {
-        margin: 0;
-        font-size: var(--font-size-2xl);
-      }
+      <div class="miner-card">
+        <div class="miner-name">Bitaxe #3</div>
+        <div class="miner-stats">
+          <p>Model: Standard</p>
+          <p>Hashrate: 80 GH/s</p>
+          <p>Status: <span class="status-offline">● Offline</span></p>
+        </div>
+        <div class="price">400 ⚡/min</div>
+        <button class="btn" disabled style="opacity: 0.5; cursor: not-allowed;">Unavailable</button>
+      </div>
 
-      /* Filters */
-      .filters {
-        display: flex;
-        gap: var(--spacing-4);
-        margin-bottom: var(--spacing-8);
-        flex-wrap: wrap;
-      }
-
-      .filter-input {
-        flex: 1;
-        min-width: 200px;
-      }
-
-      .filter-input select {
-        padding: var(--spacing-3) var(--spacing-4);
-      }
-
-      /* Miners Grid */
-      .miners-grid {
-        display: grid;
-        grid-template-columns: repeat(
-          auto-fill,
-          minmax(300px, 1fr)
-        );
-        gap: var(--spacing-6);
-        margin-bottom: var(--spacing-12);
-      }
-
-      .miner-card {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        transition: all var(--transition-base);
-        display: flex;
-        flex-direction: column;
-      }
-
-      .miner-card:hover {
-        border-color: var(--primary);
-        box-shadow: var(--shadow-lg);
-        transform: translateY(-4px);
-      }
-
-      .miner-header {
-        background: linear-gradient(
-          135deg,
-          var(--primary),
-          var(--primary-dark)
-        );
-        color: var(--black);
-        padding: var(--spacing-4);
-        font-weight: var(--font-weight-semibold);
-      }
-
-      .miner-status {
-        display: inline-block;
-        padding: var(--spacing-1) var(--spacing-2);
-        background-color: rgba(0, 0, 0, 0.2);
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-xs);
-      }
-
-      .miner-body {
-        padding: var(--spacing-4);
-        flex: 1;
-      }
-
-      .miner-specs {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--spacing-3);
-        margin-bottom: var(--spacing-4);
-      }
-
-      .miner-spec {
-        background-color: var(--bg-tertiary);
-        padding: var(--spacing-3);
-        border-radius: var(--radius-md);
-        font-size: var(--font-size-sm);
-      }
-
-      .miner-spec-label {
-        color: var(--text-secondary);
-        font-size: var(--font-size-xs);
-        margin-bottom: var(--spacing-1);
-      }
-
-      .miner-spec-value {
-        color: var(--primary);
-        font-weight: var(--font-weight-semibold);
-      }
-
-      .miner-footer {
-        padding: var(--spacing-4);
-        border-top: 1px solid var(--border-color);
-        display: flex;
-        gap: var(--spacing-3);
-      }
-
-      .miner-footer button {
-        flex: 1;
-      }
-
-      /* Rentals List */
-      .rentals-section {
-        margin-top: var(--spacing-12);
-      }
-
-      .rentals-list {
-        display: grid;
-        gap: var(--spacing-4);
-      }
-
-      .rental-item {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-4);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: all var(--transition-base);
-      }
-
-      .rental-item:hover {
-        border-color: var(--primary);
-      }
-
-      .rental-info {
-        flex: 1;
-      }
-
-      .rental-model {
-        font-weight: var(--font-weight-semibold);
-        margin-bottom: var(--spacing-2);
-      }
-
-      .rental-meta {
-        display: flex;
-        gap: var(--spacing-4);
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-      }
-
-      .rental-status {
-        padding: var(--spacing-2) var(--spacing-3);
-        border-radius: var(--radius-sm);
-        font-size: var(--font-size-xs);
-        font-weight: var(--font-weight-semibold);
-      }
-
-      .rental-status.active {
-        background-color: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-      }
-
-      .rental-status.pending {
-        background-color: rgba(245, 158, 11, 0.1);
-        color: var(--warning);
-      }
-
-      .rental-status.ended {
-        background-color: rgba(107, 114, 128, 0.1);
-        color: var(--text-secondary);
-      }
-
-      .rental-controls {
-        display: flex;
-        gap: var(--spacing-3);
-      }
-
-      .rental-controls button {
-        padding: var(--spacing-2) var(--spacing-3);
-        font-size: var(--font-size-sm);
-      }
-    </style>
-  </head>
-
-  <body>
-    <!-- Navbar -->
-    <div id="navbar-container"></div>
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="container">
-        <h1 class="page-title">⚡ Marketplace</h1>
-        <p style="color: var(--text-secondary); margin-top: var(--spacing-2);">
-          Browse and rent Bitcoin miners with Lightning payments.
-        </p>
+      <div class="miner-card">
+        <div class="miner-name">Bitaxe #4</div>
+        <div class="miner-stats">
+          <p>Model: Ultra</p>
+          <p>Hashrate: 105 GH/s</p>
+          <p>Status: <span class="status-online">● Online</span></p>
+        </div>
+        <div class="price">550 ⚡/min</div>
+        <button class="btn">Rent Now</button>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="container">
-      <!-- Filters -->
-      <div class="filters" id="filters-container">
-        <div class="filter-input">
-          <input
-            type="text"
-            id="search-input"
-            placeholder="Search miners..."
-            style="padding: var(--spacing-2) var(--spacing-3); font-size: var(--font-size-sm);"
-          />
-        </div>
-        <div class="filter-input">
-          <select id="model-filter" style="font-size: var(--font-size-sm);">
-            <option value="">All Models</option>
-            <option value="antminer-s19">Antminer S19</option>
-            <option value="antminer-s19pro">Antminer S19 Pro</option>
-            <option value="whatsminer-m30s">WhatsMiner M30S</option>
-          </select>
-        </div>
-        <div class="filter-input">
-          <select id="status-filter" style="font-size: var(--font-size-sm);">
-            <option value="">All Status</option>
-            <option value="available">Available</option>
-            <option value="maintenance">Maintenance</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div id="loading-container" style="display: none; text-align: center; padding: var(--spacing-12);">
-        <div class="spinner"></div>
-        <p style="color: var(--text-secondary); margin-top: var(--spacing-4);">
-          Loading miners...
-        </p>
-      </div>
-
-      <!-- Error State -->
-      <div id="error-container" style="display: none;">
-        <div class="alert alert-error">
-          <strong>Failed to load miners</strong>
-          <p id="error-message" style="margin-top: var(--spacing-2);"></p>
-        </div>
-      </div>
-
-      <!-- Miners Grid -->
-      <div class="miners-grid" id="miners-grid"></div>
-
-      <!-- Empty State -->
-      <div id="empty-state" style="display: none;">
-        <div class="empty-state">
-          <div class="empty-state-icon">📭</div>
-          <h3 class="empty-state-title">No Miners Available</h3>
-          <p class="empty-state-text">
-            Check back later for available miners.
-          </p>
-        </div>
-      </div>
-
-      <!-- Rentals Section -->
-      <section class="rentals-section" id="rentals-section" style="display: none;">
-        <h2 style="margin-bottom: var(--spacing-6);">My Rentals</h2>
-        <div class="rentals-list" id="rentals-list"></div>
-      </section>
+    <div style="margin-top: 50px; padding: 20px; background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 8px;">
+      <h3 style="color: #3b82f6; margin-bottom: 10px;">⚡ How It Works</h3>
+      <p>1. Browse available miners above</p>
+      <p>2. Click "Rent Now" to start</p>
+      <p>3. Authenticate with Nostr wallet</p>
+      <p>4. Pay per-minute using Lightning Network</p>
+      <p>5. Start mining immediately!</p>
     </div>
-
-    <!-- Modals -->
-    <div id="navbar-modal-container"></div>
-    <div id="login-modal-container"></div>
-    <div id="payment-modal-container"></div>
-
-    <!-- Scripts -->
-    <!-- Config -->
-    <script src="js/config.js"></script>
-
-    <!-- Libraries -->
-    <script src="js/utils.js"></script>
-    <script src="js/api-client.js"></script>
-    <script src="js/nostr-auth.js"></script>
-    <script src="js/nwc-payments.js"></script>
-
-    <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-    <!-- Page Logic -->
-    <script>
-      class ClientPage {
-        constructor() {
-          this.miners = [];
-          this.rentals = [];
-          this.filteredMiners = [];
-        }
-
-        async init() {
-          // Check authentication
-          if (!auth.isAuthenticated()) {
-            window.location.href = '/index.html';
-            return;
-          }
-
-          // Load components
-          await this.loadComponents();
-
-          // Setup event listeners
-          this.setupEventListeners();
-
-          // Load data
-          await this.loadMiners();
-          await this.loadRentals();
-        }
-
-        async loadComponents() {
-          // Load navbar
-          const navRes = await fetch('components/navbar.html');
-          const navHtml = await navRes.text();
-          document.getElementById('navbar-container').innerHTML =
-            navHtml;
-
-          // Load modals
-          const loginRes = await fetch('components/login-modal.html');
-          const loginHtml = await loginRes.text();
-          document.getElementById('login-modal-container').innerHTML =
-            loginHtml;
-
-          const paymentRes = await fetch(
-            'components/payment-modal.html'
-          );
-          const paymentHtml = await paymentRes.text();
-          document.getElementById('payment-modal-container').innerHTML =
-            paymentHtml;
-        }
-
-        setupEventListeners() {
-          // Search
-          document
-            .getElementById('search-input')
-            .addEventListener('input', () => this.filterMiners());
-
-          // Filters
-          document
-            .getElementById('model-filter')
-            .addEventListener('change', () => this.filterMiners());
-
-          document
-            .getElementById('status-filter')
-            .addEventListener('change', () => this.filterMiners());
-        }
-
-        async loadMiners() {
-          try {
-            document.getElementById('loading-container').style.display =
-              'block';
-            document.getElementById('miners-grid').innerHTML = '';
-
-            const response = await api.get('/api/miners');
-
-            this.miners = response.miners || [];
-            this.filterMiners();
-
-            document.getElementById('loading-container').style.display =
-              'none';
-
-            if (this.miners.length === 0) {
-              document.getElementById('empty-state').style.display = 'block';
-            }
-          } catch (error) {
-            console.error('Failed to load miners:', error);
-            document.getElementById('error-container').style.display =
-              'block';
-            document.getElementById('error-message').textContent =
-              error.getUserMessage?.() || error.message;
-            document.getElementById('loading-container').style.display =
-              'none';
-          }
-        }
-
-        filterMiners() {
-          const search = document
-            .getElementById('search-input')
-            .value.toLowerCase();
-          const model = document.getElementById('model-filter').value;
-          const status = document.getElementById('status-filter').value;
-
-          this.filteredMiners = this.miners.filter((miner) => {
-            const matchSearch =
-              miner.model.toLowerCase().includes(search) ||
-              miner.id.includes(search);
-
-            const matchModel = !model || miner.model === model;
-            const matchStatus = !status || miner.status === status;
-
-            return matchSearch && matchModel && matchStatus;
-          });
-
-          this.renderMiners();
-        }
-
-        renderMiners() {
-          const grid = document.getElementById('miners-grid');
-          grid.innerHTML = '';
-
-          if (this.filteredMiners.length === 0) {
-            document.getElementById('empty-state').style.display = 'block';
-            return;
-          }
-
-          document.getElementById('empty-state').style.display = 'none';
-
-          this.filteredMiners.forEach((miner) => {
-            grid.appendChild(this.createMinerCard(miner));
-          });
-        }
-
-        createMinerCard(miner) {
-          const card = document.createElement('div');
-          card.className = 'miner-card';
-
-          const statusClass =
-            miner.status === 'available'
-              ? 'success'
-              : 'warning';
-          const statusText =
-            miner.status === 'available'
-              ? '✓ Available'
-              : '⚠ Maintenance';
-
-          card.innerHTML = `
-            <div class="miner-header">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>${miner.model}</span>
-                <span class="miner-status" style="background-color: var(--${statusClass}); color: var(--white);">
-                  ${statusText}
-                </span>
-              </div>
-            </div>
-            <div class="miner-body">
-              <div class="miner-specs">
-                <div class="miner-spec">
-                  <div class="miner-spec-label">Hash Rate</div>
-                  <div class="miner-spec-value">${miner.hashRate}
-                  TH/s</div>
-                </div>
-                <div class="miner-spec">
-                  <div class="miner-spec-label">Power</div>
-                  <div class="miner-spec-value">${miner.power}W</div>
-                </div>
-                <div class="miner-spec">
-                  <div class="miner-spec-label">Price/Hour</div>
-                  <div class="miner-spec-value">${Utils.formatSats(
-                    miner.pricePerHour
-                  )}</div>
-                </div>
-                <div class="miner-spec">
-                  <div class="miner-spec-label">ROI</div>
-                  <div class="miner-spec-value">${miner.roi}%</div>
-                </div>
-              </div>
-              <p style="color: var(--text-secondary); font-size: var(--font-size-sm);">
-                ${miner.location || 'Location TBD'}
-              </p>
-            </div>
-            <div class="miner-footer">
-              <button
-                class="btn btn-primary"
-                data-miner-id="${miner.id}"
-              >
-                Rent Now
-              </button>
-            </div>
-          `;
-
-          card
-            .querySelector('button')
-            .addEventListener('click', () => this.rentMiner(miner));
-
-          return card;
-        }
-
-        rentMiner(miner) {
-          // Open rental modal with payment
-          showPaymentModal(miner.id, miner.pricePerHour);
-        }
-
-        async loadRentals() {
-          try {
-            const response = await api.get('/api/rentals');
-
-            this.rentals = response.rentals || [];
-
-            if (this.rentals.length > 0) {
-              document.getElementById('rentals-section').style.display =
-                'block';
-              this.renderRentals();
-            }
-          } catch (error) {
-            console.error('Failed to load rentals:', error);
-          }
-        }
-
-        renderRentals() {
-          const list = document.getElementById('rentals-list');
-          list.innerHTML = '';
-
-          this.rentals.forEach((rental) => {
-            list.appendChild(
-              this.createRentalItem(rental)
-            );
-          });
-        }
-
-        createRentalItem(rental) {
-          const item = document.createElement('div');
-          item.className = 'rental-item';
-
-          const statusClass = {
-            active: 'active',
-            pending: 'pending',
-            ended: 'ended',
-          }[rental.status] || 'pending';
-
-          const endTime = new Date(rental.endTime);
-          const isActive = rental.status === 'active';
-
-          item.innerHTML = `
-            <div class="rental-info">
-              <div class="rental-model">${rental.minerModel}</div>
-              <div class="rental-meta">
-                <span>Started: ${Utils.formatDateTime(rental.startTime)}</span>
-                <span>Ends: ${Utils.formatDateTime(endTime)}</span>
-                <span>Total: ${Utils.formatSats(rental.totalPrice)}</span>
-              </div>
-            </div>
-            <div style="display: flex; gap: var(--spacing-4); align-items: center;">
-              <span class="rental-status ${statusClass}">
-                ${rental.status.toUpperCase()}
-              </span>
-              <div class="rental-controls">
-                ${isActive ? `<button class="btn btn-sm btn-secondary" data-rental-id="${rental.id}">Details</button>` : ''}
-              </div>
-            </div>
-          `;
-
-          return item;
-        }
-      }
-
-      // Initialize page
-      const page = new ClientPage();
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          page.init();
-        });
-      } else {
-        page.init();
-      }
-
-      // Global callback for payment success
-      function onPaymentSuccess(status) {
-        Utils.showSuccess('Payment received! Rental activated.');
-        location.reload();
-      }
-    </script>
-  </body>
+  </div>
+</body>
 </html>

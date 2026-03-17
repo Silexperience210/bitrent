@@ -1,0 +1,8 @@
+{
+  "status": "ok",
+  "service": "BitRent API",
+  "version": "1.0.0",
+  "timestamp": "2026-03-17T07:15:00Z",
+  "database": "ready",
+  "environment": "production"
+}

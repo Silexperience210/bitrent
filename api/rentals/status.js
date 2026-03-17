@@ -45,8 +45,6 @@ export default async function handler(req, res) {
           .update({
             status: 'active',
             payment_verified_at: now,
-            start_time: now,
-            end_time: new Date(Date.now() + rental.duration_minutes * 60 * 1000).toISOString(),
             updated_at: now,
           })
           .eq('id', rental.id)

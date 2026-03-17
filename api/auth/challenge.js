@@ -4,6 +4,8 @@ import { isValidPubkey } from '../_lib/nostr.js'
 import crypto from 'crypto'
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const MAX_PER_PUBKEY = 5   // per 5 min window
+const MAX_PER_IP = 30      // per 5 min window
 
 export default async function handler(req, res) {
   if (setCors(req, res)) return
@@ -14,18 +16,33 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid pubkey: must be 64 lowercase hex chars' })
   }
 
-  // Rate limit: max 5 per pubkey per 5 minutes
-  const { count } = await supabase
+  const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+    req.socket?.remoteAddress || 'unknown'
+  const windowStart = new Date(Date.now() - CHALLENGE_TTL_MS).toISOString()
+
+  // Rate limit by pubkey (queried from DB)
+  const { count: pubkeyCount } = await supabase
     .from('challenges')
     .select('id', { count: 'exact', head: true })
     .eq('pubkey_nostr', pubkey)
-    .gt('created_at', new Date(Date.now() - CHALLENGE_TTL_MS).toISOString())
+    .gt('created_at', windowStart)
 
-  if (count >= 5) {
-    return res.status(429).json({ error: 'Too many requests. Try again in 5 minutes.' })
+  if (pubkeyCount >= MAX_PER_PUBKEY) {
+    return res.status(429).json({ error: 'Too many requests for this pubkey. Try again in 5 minutes.' })
   }
 
-  // Remove any stale challenges for this pubkey
+  // Rate limit by IP (migration 006 added ip_address column)
+  const { count: ipCount } = await supabase
+    .from('challenges')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip_address', clientIp)
+    .gt('created_at', windowStart)
+
+  if (ipCount >= MAX_PER_IP) {
+    return res.status(429).json({ error: 'Too many requests from this IP. Try again in 5 minutes.' })
+  }
+
+  // Remove stale expired challenges for this pubkey
   await supabase
     .from('challenges')
     .delete()
@@ -39,6 +56,7 @@ export default async function handler(req, res) {
     challenge,
     pubkey_nostr: pubkey,
     expires_at: expiresAt,
+    ip_address: clientIp,
   })
 
   if (error) {

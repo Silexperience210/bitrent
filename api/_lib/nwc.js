@@ -107,8 +107,9 @@ async function nwcRequest(method, params = {}) {
         } else {
           resolve(response.result)
         }
-      } catch {
+      } catch (err) {
         // Non-fatal parse errors on unrelated messages
+        console.warn('[nwc] Message parse error:', err?.message)
       }
     })
 
@@ -116,6 +117,8 @@ async function nwcRequest(method, params = {}) {
       if (!settled) {
         settled = true
         clearTimeout(timeout)
+        ws.removeAllListeners()
+        ws.terminate()
         reject(new Error(`NWC WebSocket error: ${err.message}`))
       }
     })

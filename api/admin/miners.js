@@ -54,11 +54,15 @@ export default async function handler(req, res) {
     }
 
     // Get admin user id
-    const { data: adminUser } = await supabase
+    const { data: adminUser, error: userErr } = await supabase
       .from('users')
       .select('id')
       .eq('pubkey_nostr', payload.pubkey)
       .single()
+
+    if (userErr || !adminUser) {
+      return res.status(500).json({ error: 'Admin user record not found' })
+    }
 
     const { data, error } = await supabase
       .from('mineurs')

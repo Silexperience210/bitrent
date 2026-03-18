@@ -554,8 +554,10 @@ async function createRental() {
   const addr = document.getElementById('payout-addr').value.trim()
   const pool = document.getElementById('pool-select').value
   if (!addr) {
-    errEl.textContent = 'Enter your Bitcoin payout address.'
+    errEl.textContent = '⚠️ Enter your Bitcoin payout address first.'
     errEl.style.display = ''
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    showToast('Enter your Bitcoin payout address first.', 'error')
     return
   }
   const btn = document.getElementById('btn-create-rental')

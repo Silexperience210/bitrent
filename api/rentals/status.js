@@ -2,6 +2,7 @@ import { supabase } from '../_lib/supabase.js'
 import { setCors } from '../_lib/cors.js'
 import { verify, fromHeader } from '../_lib/jwt.js'
 import { lookupInvoice } from '../_lib/nwc.js'
+import { getPoolConfig, setPool, restartMiner } from '../_lib/bitaxe.js'
 
 export default async function handler(req, res) {
   if (setCors(req, res)) return
@@ -14,13 +15,13 @@ export default async function handler(req, res) {
   const { id } = req.query
   if (!id) return res.status(400).json({ error: 'Rental id required' })
 
-  // Fetch rental with miner info
+  // Fetch rental with miner info (include ip_address for Bitaxe API calls)
   const { data: rental, error } = await supabase
     .from('rentals')
     .select(`
       id, status, start_time, end_time, duration_minutes,
       sats_per_minute, total_sats, invoice_hash, metadata,
-      mineur:mineurs ( id, name, hashrate_specs, status, metadata ),
+      mineur:mineurs ( id, name, hashrate_specs, status, ip_address, port, metadata ),
       user:users ( id, pubkey_nostr )
     `)
     .eq('id', id)
@@ -38,14 +39,49 @@ export default async function handler(req, res) {
     try {
       const { paid, settled_at } = await lookupInvoice(rental.invoice_hash)
       if (paid) {
-        // Activate rental
         const now = new Date().toISOString()
+
+        // ── Activate the physical Bitaxe miner ───────────────────────────────
+        const ip   = rental.mineur?.ip_address
+        const port = rental.mineur?.port || 80
+        let activationOk = false
+        let ownerConfigBackup = null
+
+        if (ip) {
+          try {
+            // 1. Save owner's current pool config so we can restore it after expiry
+            ownerConfigBackup = await getPoolConfig(ip, port)
+
+            // 2. Switch miner to rental pool + client's payout address
+            const stratumUser = `${rental.metadata.payout_address}.bitrent`
+            await setPool(ip, port, rental.metadata.pool_url, stratumUser)
+
+            // 3. Restart miner to apply new config (~30s downtime, expected)
+            await restartMiner(ip, port)
+
+            activationOk = true
+            console.log(`[rentals/status] Miner ${ip} activated for rental ${rental.id}`)
+          } catch (bitaxeErr) {
+            // Payment received but miner activation failed — log for admin investigation
+            console.error(`[rentals/status] Bitaxe activation failed for rental ${rental.id}:`, bitaxeErr.message)
+          }
+        } else {
+          console.warn(`[rentals/status] Rental ${rental.id}: miner has no IP — skipping activation`)
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Update rental: active + save owner config backup in metadata
         await supabase
           .from('rentals')
           .update({
             status: 'active',
             payment_verified_at: now,
             updated_at: now,
+            metadata: {
+              ...rental.metadata,
+              activation_ok: activationOk,
+              owner_config_backup: ownerConfigBackup,
+            },
           })
           .eq('id', rental.id)
 
@@ -59,7 +95,7 @@ export default async function handler(req, res) {
           action: 'PAYMENT_CONFIRMED',
           resource_type: 'rental',
           resource_id: rental.id,
-          changes: { invoice_hash: rental.invoice_hash, settled_at },
+          changes: { invoice_hash: rental.invoice_hash, settled_at, activation_ok: activationOk },
         })
 
         rental.status = 'active'

@@ -4,12 +4,34 @@
  */
 window.Auth = {
   getToken() { return localStorage.getItem(CONFIG.TOKEN_KEY) },
+
   getUser() {
     try { return JSON.parse(localStorage.getItem(CONFIG.USER_KEY)) }
     catch { return null }
   },
-  isLoggedIn() { return !!this.getToken() },
+
+  // Check if JWT token is present and not expired
+  isLoggedIn() {
+    const token = this.getToken()
+    if (!token) return false
+    // Decode JWT payload (base64url, no crypto needed — just check exp)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))
+      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+        this.clearSession() // expired
+        return false
+      }
+    } catch {
+      // Malformed token — treat as logged out
+      return false
+    }
+    return true
+  },
+
   isAdmin() { return this.getUser()?.is_admin === true },
+
+  // Check if a Nostr extension is available
+  hasNostrExtension() { return !!(window.nostr) },
 
   setSession(token, user) {
     localStorage.setItem(CONFIG.TOKEN_KEY, token)
@@ -24,17 +46,25 @@ window.Auth = {
   async login() {
     if (!window.nostr) {
       throw new Error(
-        'No Nostr extension found.\n\nInstall the Alby browser extension (getalby.com) or nos2x to continue.'
+        'No Nostr extension found. Install Alby (getalby.com) or nos2x to continue.'
       )
     }
 
-    // 1. Get pubkey from extension
-    const pubkey = await window.nostr.getPublicKey()
+    let pubkey
+    try {
+      pubkey = await window.nostr.getPublicKey()
+    } catch (e) {
+      throw new Error('Could not get public key from extension. Did you approve the request?')
+    }
 
-    // 2. Request challenge from backend
+    if (!pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) {
+      throw new Error('Invalid public key returned by extension.')
+    }
+
+    // Request challenge from backend
     const { challenge } = await api.post('/api/auth/challenge', { pubkey })
 
-    // 3. Build NIP-98 HTTP Auth event
+    // Build NIP-98 HTTP Auth event (kind 27235)
     const eventTemplate = {
       kind: 27235,
       created_at: Math.floor(Date.now() / 1000),
@@ -45,12 +75,16 @@ window.Auth = {
       content: challenge,
     }
 
-    // 4. Sign with wallet (extension fills id + sig + pubkey)
-    const signedEvent = await window.nostr.signEvent(eventTemplate)
+    let signedEvent
+    try {
+      signedEvent = await window.nostr.signEvent(eventTemplate)
+    } catch (e) {
+      throw new Error('Signing was rejected or cancelled.')
+    }
 
-    if (!signedEvent?.sig) throw new Error('Wallet did not return a signature')
+    if (!signedEvent?.sig) throw new Error('Extension did not return a signature.')
 
-    // 5. Exchange for JWT
+    // Exchange signed event for JWT
     const { token, user } = await api.post('/api/auth/verify', { event: signedEvent })
 
     this.setSession(token, user)

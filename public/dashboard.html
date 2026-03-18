@@ -12,7 +12,10 @@
 <nav>
   <div class="nav-inner">
     <a href="/" class="nav-brand">⚡ Bit<span>Rent</span></a>
-    <div class="nav-links" id="nav-auth"></div>
+    <div class="nav-links">
+      <span class="nav-user" id="user-pubkey" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);"></span>
+      <div id="nav-auth" style="display:flex;gap:8px;align-items:center;"></div>
+    </div>
   </div>
 </nav>
 
@@ -20,16 +23,16 @@
   <div class="container">
 
     <!-- User header -->
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:12px;">
       <div>
-        <h1 style="font-size:1.4rem; font-weight:700; margin-bottom:4px;">My Dashboard</h1>
-        <p class="nav-user" id="user-pubkey" style="font-size:0.85rem; color:var(--text-muted);"></p>
+        <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:4px;">My Dashboard</h1>
+        <p style="font-size:0.85rem;color:var(--text-muted);">Monitor your active miners and rental history.</p>
       </div>
       <a href="/" class="btn btn-primary">+ Rent a Miner</a>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
+    <!-- Stats grid: 4 cards -->
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:40px;">
       <div class="stat-card">
         <div class="stat-label">Active Rentals</div>
         <div class="stat-value" id="stat-active">—</div>
@@ -40,25 +43,34 @@
       </div>
       <div class="stat-card">
         <div class="stat-label">Total Spent</div>
-        <div class="stat-value btc" id="stat-spent">—</div>
+        <div class="stat-value btc" id="stat-spent" style="font-family:var(--font-mono);">—</div>
         <div class="stat-sub">sats</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mining Time</div>
+        <div class="stat-value" id="stat-time">—</div>
+        <div class="stat-sub">minutes total</div>
       </div>
     </div>
 
-    <!-- Active Rentals -->
-    <div id="active-section" style="display:none;">
-      <div class="section-header"><h2 class="section-title">⛏️ Active Mining</h2></div>
+    <!-- Active Mining section -->
+    <div id="active-section" style="display:none;margin-bottom:40px;">
+      <div class="section-header">
+        <h2 class="section-title">⛏️ Active Mining</h2>
+        <span style="font-size:0.8rem;color:var(--text-muted);">Live stats refresh every 30s</span>
+      </div>
       <div id="active-list"></div>
     </div>
 
     <!-- Rental History -->
-    <div class="section-header" style="margin-top:32px;">
+    <div class="section-header">
       <h2 class="section-title">Rental History</h2>
       <button class="btn btn-ghost btn-sm" onclick="loadRentals()">↻ Refresh</button>
     </div>
     <div id="rentals-container">
       <div style="text-align:center;padding:40px;color:var(--text-muted);">Loading...</div>
     </div>
+
   </div>
 </div>
 
@@ -83,19 +95,21 @@ function esc(str) {
 }
 
 let rentals = []
+let isRefreshing = false
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!Auth.requireAuth()) return
   setupNav()
   loadProfile()
   loadRentals()
-  // Auto-refresh active rentals
   setInterval(refreshActive, CONFIG.POLL_MS * 2)
 })
 
 function setupNav() {
   const u = Auth.getUser()
-  document.getElementById('user-pubkey').textContent = u?.pubkey || ''
+  const pk = u?.pubkey || ''
+  const shortPk = pk.length > 14 ? pk.slice(0,10) + '…' + pk.slice(-4) : pk
+  document.getElementById('user-pubkey').textContent = shortPk
   document.getElementById('nav-auth').innerHTML =
     (u?.is_admin ? `<a href="/admin.html" class="btn btn-secondary btn-sm">Admin</a>` : '') +
     `<a href="/" class="btn btn-secondary btn-sm">Marketplace</a>
@@ -115,11 +129,13 @@ async function loadRentals() {
     const { rentals: data } = await api.get('/api/rentals/list')
     rentals = data
 
-    // Compute total spent
+    // Stats: total spent, total mining time
     const totalSats = data.reduce((s, r) => s + (r.total_sats || 0), 0)
+    const totalMins = data.reduce((s, r) => s + (r.duration_minutes || 0), 0)
     document.getElementById('stat-spent').textContent = totalSats.toLocaleString()
+    document.getElementById('stat-time').textContent = totalMins.toLocaleString()
 
-    // Active rentals
+    // Active rentals — Mining Room cards
     const active = data.filter(r => r.status === 'active')
     const activeSec = document.getElementById('active-section')
     if (active.length) {
@@ -132,57 +148,103 @@ async function loadRentals() {
     // History table
     const container = document.getElementById('rentals-container')
     if (!data.length) {
-      container.innerHTML = `<div class="empty"><div class="empty-icon">⛏️</div><div class="empty-title">No rentals yet</div><div class="empty-text">Rent your first miner from the <a href="/">marketplace</a>.</div></div>`
+      container.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">⛏️</div>
+          <div class="empty-title">No rentals yet</div>
+          <div class="empty-text">Rent your first miner from the <a href="/">marketplace</a>.</div>
+        </div>`
       return
     }
+
     container.innerHTML = `
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Miner</th><th>Duration</th><th>Pool</th>
-            <th>Cost</th><th>Status</th><th>Date</th><th></th>
+            <th>Miner</th>
+            <th>Duration</th>
+            <th>Pool</th>
+            <th>Cost</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th></th>
           </tr></thead>
-          <tbody>${data.map(r => `
-            <tr>
-              <td><strong>${esc(r.miner_name)}</strong><br><small style="color:var(--text-muted)">${esc(r.hashrate_ths)} TH/s</small></td>
-              <td>${r.duration_minutes >= 60 ? (r.duration_minutes/60)+'h' : r.duration_minutes+'m'}</td>
-              <td>${esc(r.pool_name || '—')}</td>
-              <td class="price-btc">${(r.total_sats||0).toLocaleString()} sats</td>
-              <td><span class="badge badge-${r.status}">${r.status}</span></td>
-              <td style="color:var(--text-muted);font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString()}</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="showDetail('${r.id}')">View</button></td>
-            </tr>`).join('')}
+          <tbody>
+            ${data.map(r => `
+              <tr>
+                <td>
+                  <strong>${esc(r.miner_name)}</strong><br>
+                  <small style="color:var(--text-muted);font-family:var(--font-mono);">${esc(r.hashrate_ths)} TH/s</small>
+                </td>
+                <td>${r.duration_minutes >= 60 ? (r.duration_minutes / 60) + 'h' : r.duration_minutes + 'm'}</td>
+                <td>${esc(r.pool_name || '—')}</td>
+                <td style="font-family:var(--font-mono);color:var(--btc);">${(r.total_sats || 0).toLocaleString()} sats</td>
+                <td><span class="badge badge-${esc(r.status)}">${esc(r.status)}</span></td>
+                <td style="color:var(--text-muted);font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString()}</td>
+                <td><button class="btn btn-ghost btn-sm" onclick="showDetail('${esc(r.id)}')">View</button></td>
+              </tr>`).join('')}
           </tbody>
         </table>
       </div>`
   } catch (e) {
     document.getElementById('rentals-container').innerHTML =
-      `<div class="alert alert-error">${e.message}</div>`
+      `<div class="alert alert-error">${esc(e.message)}</div>`
   }
 }
 
 function renderActiveCard(r) {
   const endMs = new Date(r.end_time).getTime()
   const remaining = Math.max(0, Math.floor((endMs - Date.now()) / 60000))
-  const pct = Math.round((1 - remaining / r.duration_minutes) * 100)
+  const pct = Math.min(100, Math.round((1 - remaining / r.duration_minutes) * 100))
+
+  const hashrate = r.live_hashrate ? `${r.live_hashrate} GH/s` : '—'
+  const temp     = r.live_temp    ? `${r.live_temp}°C`          : '—'
+  const power    = r.live_power   ? `${r.live_power}W`          : '—'
+  const tempClass = r.live_temp > 75 ? 'danger' : r.live_temp > 65 ? 'yellow' : 'green'
+
   return `
-    <div class="card" style="margin-bottom:16px;" id="active-${r.id}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-        <div>
-          <strong>${esc(r.miner_name)}</strong>
+  <div class="mining-room-card" id="active-${esc(r.id)}">
+    <div class="mr-header">
+      <div>
+        <div class="mr-name">
+          <span class="live-dot"></span>${esc(r.miner_name)}
           <span class="badge badge-active" style="margin-left:8px;">Mining</span>
         </div>
-        <span class="countdown" id="countdown-${r.id}">${formatTime(remaining)}</span>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">
+          <span style="font-family:var(--font-mono);">${esc(r.hashrate_ths)} TH/s</span>
+          · Pool: <strong>${esc(r.pool_name || '—')}</strong>
+        </div>
       </div>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar" id="prog-${r.id}" style="width:${pct}%"></div>
+      <div style="text-align:right;">
+        <div class="mr-countdown" id="countdown-${esc(r.id)}">${formatTime(remaining)}</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);">remaining</div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
-        <span>Pool: <strong>${esc(r.pool_name || '—')}</strong></span>
-        <span>${(r.total_sats||0).toLocaleString()} sats paid</span>
+    </div>
+
+    <div class="mr-live-stats">
+      <div class="mr-live-stat">
+        <div class="mr-live-label">Hashrate</div>
+        <div class="mr-live-val btc" id="live-hash-${esc(r.id)}" style="font-family:var(--font-mono);">${hashrate}</div>
       </div>
-      <button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="showDetail('${r.id}')">View Config</button>
-    </div>`
+      <div class="mr-live-stat">
+        <div class="mr-live-label">Temperature</div>
+        <div class="mr-live-val ${tempClass}" id="live-temp-${esc(r.id)}">${temp}</div>
+      </div>
+      <div class="mr-live-stat">
+        <div class="mr-live-label">Power</div>
+        <div class="mr-live-val" id="live-power-${esc(r.id)}" style="font-family:var(--font-mono);">${power}</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="prog-${esc(r.id)}" style="width:${pct}%"></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:0.8rem;color:var(--text-muted);">
+      <span>Paid: <strong style="color:var(--btc);font-family:var(--font-mono);">${(r.total_sats || 0).toLocaleString()} sats</strong></span>
+      <button class="btn btn-ghost btn-sm" onclick="showDetail('${esc(r.id)}')">View Config</button>
+    </div>
+  </div>`
 }
 
 function formatTime(minutes) {
@@ -190,8 +252,6 @@ function formatTime(minutes) {
   const m = minutes % 60
   return h > 0 ? `${h}h ${m.toString().padStart(2,'0')}m` : `${m}m`
 }
-
-let isRefreshing = false
 
 async function refreshActive() {
   if (isRefreshing) return
@@ -201,13 +261,41 @@ async function refreshActive() {
     for (const r of active) {
       try {
         const data = await api.get(`/api/rentals/status?id=${r.id}`)
+
+        // Update countdown
         const countEl = document.getElementById(`countdown-${r.id}`)
         if (countEl) countEl.textContent = formatTime(data.remaining_minutes)
+
+        // Update progress bar
         const progEl = document.getElementById(`prog-${r.id}`)
         if (progEl) {
-          const pct = Math.round((1 - data.remaining_minutes / data.duration_minutes) * 100)
-          progEl.style.width = `${Math.min(100, Math.max(0, pct))}%`
+          const pct = Math.min(100, Math.max(0, Math.round((1 - data.remaining_minutes / data.duration_minutes) * 100)))
+          progEl.style.width = `${pct}%`
         }
+
+        // Update live hashrate
+        if (data.miner?.last_hashrate != null) {
+          const hashEl = document.getElementById(`live-hash-${r.id}`)
+          if (hashEl) hashEl.textContent = `${(data.miner.last_hashrate * 1000).toFixed(0)} GH/s`
+        }
+
+        // Update live temperature
+        if (data.miner?.last_temp != null) {
+          const tempEl = document.getElementById(`live-temp-${r.id}`)
+          if (tempEl) {
+            tempEl.textContent = `${data.miner.last_temp}°C`
+            const t = data.miner.last_temp
+            tempEl.className = `mr-live-val ${t > 75 ? 'danger' : t > 65 ? 'yellow' : 'green'}`
+          }
+        }
+
+        // Update live power
+        if (data.miner?.last_power != null) {
+          const powEl = document.getElementById(`live-power-${r.id}`)
+          if (powEl) powEl.textContent = `${data.miner.last_power}W`
+        }
+
+        // Reload if rental just completed
         if (data.status === 'completed') loadRentals()
       } catch {}
     }
@@ -225,14 +313,14 @@ async function showDetail(rentalId) {
     document.getElementById('modal-detail-content').innerHTML = renderDetail(data)
   } catch (e) {
     document.getElementById('modal-detail-content').innerHTML =
-      `<div class="alert alert-error">${e.message}</div>`
+      `<div class="alert alert-error">${esc(e.message)}</div>`
   }
 }
 
 function renderDetail(d) {
   const remainMins = d.remaining_minutes
   const endDate = new Date(d.end_time).toLocaleString()
-  const statusBadge = `<span class="badge badge-${d.status}">${d.status}</span>`
+  const statusBadge = `<span class="badge badge-${esc(d.status)}">${esc(d.status)}</span>`
 
   let configHtml = ''
   if (d.mining_config) {
@@ -243,9 +331,9 @@ function renderDetail(d) {
         <div class="config-card">
           <div class="config-row"><span class="config-key">Pool</span><span class="config-val">${esc(c.pool_name)}</span></div>
           <div class="config-row"><span class="config-key">Pool URL</span><span class="config-val">${esc(c.pool_url)}</span></div>
-          <div class="config-row"><span class="config-key">Username</span><span class="config-val btc">${esc(c.stratum_user)}</span></div>
+          <div class="config-row"><span class="config-key">Username</span><span class="config-val btc" style="font-family:var(--font-mono);word-break:break-all;">${esc(c.stratum_user)}</span></div>
           <div class="config-row"><span class="config-key">Password</span><span class="config-val">x</span></div>
-          <div class="config-row"><span class="config-key">Payout</span><span class="config-val btc">${esc(c.payout_address)}</span></div>
+          <div class="config-row"><span class="config-key">Payout</span><span class="config-val btc" style="font-family:var(--font-mono);word-break:break-all;">${esc(c.payout_address)}</span></div>
         </div>
       </div>`
   }
@@ -255,7 +343,7 @@ function renderDetail(d) {
       <div class="stat-card card-sm">
         <div class="stat-label">Miner</div>
         <div style="font-weight:600;">${esc(d.miner?.name || '—')}</div>
-        <div class="stat-sub">${esc(d.miner?.hashrate_ths)} TH/s</div>
+        <div class="stat-sub" style="font-family:var(--font-mono);">${esc(d.miner?.hashrate_ths)} TH/s</div>
       </div>
       <div class="stat-card card-sm">
         <div class="stat-label">Status</div>
@@ -263,12 +351,12 @@ function renderDetail(d) {
       </div>
       <div class="stat-card card-sm">
         <div class="stat-label">Cost</div>
-        <div style="font-weight:600;color:var(--btc)">${(d.total_sats||0).toLocaleString()} sats</div>
+        <div style="font-weight:600;color:var(--btc);font-family:var(--font-mono);">${(d.total_sats || 0).toLocaleString()} sats</div>
       </div>
       <div class="stat-card card-sm">
         <div class="stat-label">${d.status === 'active' ? 'Remaining' : 'Duration'}</div>
         <div style="font-weight:600;">${d.status === 'active' ? formatTime(remainMins) : `${d.duration_minutes} min`}</div>
-        ${d.status === 'active' ? `<div class="stat-sub">ends ${endDate}</div>` : ''}
+        ${d.status === 'active' ? `<div class="stat-sub">ends ${esc(endDate)}</div>` : ''}
       </div>
     </div>
     ${configHtml}

@@ -132,20 +132,18 @@
         <span style="font-size:0.85rem;color:var(--text-muted);">Generating challenge…</span>
       </div>
       <div id="ln-ready" style="display:none;">
-        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;">
-          Open in your Lightning wallet to approve login:
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;text-align:center;">
+          Scannez avec votre wallet Lightning pour vous connecter :
         </p>
-        <button class="btn btn-primary" style="width:100%;margin-bottom:10px;" id="btn-ln-open" onclick="openLnauthWallet()">
-          ⚡ Open in Lightning Wallet
+        <!-- QR Code -->
+        <div id="ln-qr" style="display:flex;justify-content:center;margin-bottom:12px;"></div>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" id="btn-ln-open" onclick="openLnauthWallet()">
+          ⚡ Ouvrir dans mon wallet
         </button>
-        <details>
-          <summary style="font-size:0.75rem;color:var(--text-muted);cursor:pointer;">Copy LNURL manually</summary>
-          <div id="ln-lnurl-text" style="margin-top:6px;padding:8px;background:var(--surface);border-radius:6px;font-family:monospace;font-size:0.68rem;word-break:break-all;color:var(--text-muted);cursor:pointer;" onclick="copyLnurl(this)"></div>
-          <div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;">Click to copy</div>
-        </details>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:0.8rem;color:var(--text-muted);">
+        <div id="ln-lnurl-text" style="padding:6px 8px;background:var(--surface);border-radius:6px;font-family:monospace;font-size:0.65rem;word-break:break-all;color:var(--text-muted);cursor:pointer;text-align:center;" onclick="copyLnurl(this)" title="Cliquer pour copier"></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
           <div class="spinner" style="width:12px;height:12px;border-width:2px;flex-shrink:0;"></div>
-          Waiting for wallet confirmation…
+          En attente de confirmation…
         </div>
       </div>
       <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="showLoginMethods()">← Back</button>
@@ -511,6 +509,10 @@ async function doLoginLnauth() {
     document.getElementById('ln-lnurl-text').textContent = lnurl
     document.getElementById('ln-waiting').style.display  = 'none'
     document.getElementById('ln-ready').style.display    = ''
+    // QR code (lightning: URI so wallets auto-detect it)
+    const qrEl = document.getElementById('ln-qr')
+    qrEl.innerHTML = ''
+    new QRCode(qrEl, { text: 'lightning:' + lnurl, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' })
 
     const user = await Auth.waitLnauth(k1)
     _afterLogin()

@@ -608,9 +608,9 @@ function makeQR(container, text, sizePx) {
   var qr = qrcode(0, 'L')   // type 0 = version auto
   qr.addData(text)
   qr.make()
-  container.innerHTML = qr.createSvgTag(4, 0)
+  container.innerHTML = qr.createSvgTag(4, 4)  // margin=4 modules = quiet zone obligatoire
   var svg = container.querySelector('svg')
-  if (svg) svg.style.cssText = 'width:' + sizePx + 'px;height:' + sizePx + 'px;border-radius:8px;display:block;margin:0 auto'
+  if (svg) svg.style.cssText = 'width:' + sizePx + 'px;height:' + sizePx + 'px;border-radius:8px;display:block;margin:0 auto;background:#fff'
 }
 
 // ─── Bind Events ──────────────────────────────────────────────────────────────

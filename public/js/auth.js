@@ -43,10 +43,57 @@ window.Auth = {
     localStorage.removeItem(CONFIG.USER_KEY)
   },
 
+  // ── LNURL-auth ─────────────────────────────────────────────────────────────
+
+  /** Request a new LNAUTH challenge. Returns { k1, lnurl }. */
+  async startLnauth() {
+    return api.get('/api/auth/lnauth')
+  },
+
+  /**
+   * Poll until Lightning wallet confirms login.
+   * @param {string} k1  challenge from startLnauth()
+   * @returns {Promise<user>}
+   */
+  waitLnauth(k1) {
+    return new Promise((resolve, reject) => {
+      let attempts = 0
+      const MAX = 150  // 5 min @ 2s intervals
+
+      const poll = async () => {
+        try {
+          const data = await api.get(`/api/auth/lnauth?k1=${encodeURIComponent(k1)}`)
+          if (data.authenticated) {
+            this.setSession(data.token, data.user)
+            resolve(data.user)
+          } else if (++attempts >= MAX) {
+            reject(new Error('LNAUTH timed out — please try again.'))
+          } else {
+            setTimeout(poll, 2000)
+          }
+        } catch (e) {
+          // 404 = session gone/expired
+          if (e.message?.includes('404') || e.message?.includes('expired')) {
+            reject(new Error('Session expired — please try again.'))
+          } else if (++attempts >= MAX) {
+            reject(new Error('LNAUTH timed out — please try again.'))
+          } else {
+            setTimeout(poll, 2000)
+          }
+        }
+      }
+
+      setTimeout(poll, 1000) // first check after 1s
+    })
+  },
+
+  // ── NIP-07 login ───────────────────────────────────────────────────────────
+
   async login() {
     if (!window.nostr) {
       throw new Error(
-        'No Nostr extension found. Install Alby (getalby.com) or nos2x to continue.'
+        'Nostr extension not detected. If you just installed Alby, ' +
+        'please refresh this page and try again.'
       )
     }
 

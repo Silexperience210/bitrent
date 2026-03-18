@@ -6,7 +6,7 @@ import WebSocket from 'ws'
 import { finalizeEvent, getPublicKey, nip04 } from 'nostr-tools'
 import crypto from 'crypto'
 
-const NWC_TIMEOUT_MS = 25000
+const NWC_TIMEOUT_MS = 12000  // Must be < frontend 15s timeout so errors surface properly
 
 function hexToUint8Array(hex) {
   const arr = new Uint8Array(hex.length / 2)

@@ -54,12 +54,20 @@ window.Auth = {
     try {
       pubkey = await window.nostr.getPublicKey()
     } catch (e) {
-      throw new Error('Could not get public key from extension. Did you approve the request?')
+      const detail = e?.message || e?.toString() || ''
+      throw new Error(detail
+        ? `Extension error: ${detail}`
+        : 'Could not get public key. Make sure your extension has allowed this site (check extension settings).'
+      )
     }
 
-    if (!pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) {
-      throw new Error('Invalid public key returned by extension.')
+    if (!pubkey) {
+      throw new Error('Extension returned no public key. Try clicking the extension icon and connecting it to this site.')
     }
+    if (!/^[0-9a-f]{64}$/i.test(pubkey)) {
+      throw new Error(`Invalid public key format: "${pubkey.slice(0, 20)}…"`)
+    }
+    pubkey = pubkey.toLowerCase()
 
     // Request challenge from backend
     const { challenge } = await api.post('/api/auth/challenge', { pubkey })

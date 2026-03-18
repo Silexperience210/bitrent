@@ -249,7 +249,7 @@
 <script src="/js/config.js"></script>
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 let selectedMiner = null, selectedMins = 15, rentalId = null, pollTimer = null, isPollPending = false
 let allMiners = [], filters = { available: true, sort: 'price' }
@@ -509,12 +509,7 @@ async function doLoginLnauth() {
     document.getElementById('ln-lnurl-text').textContent = lnurl
     document.getElementById('ln-waiting').style.display  = 'none'
     document.getElementById('ln-ready').style.display    = ''
-    // QR code — LNURL en majuscules, error level L pour QR moins dense
-    const qrEl = document.getElementById('ln-qr')
-    qrEl.innerHTML = ''
-    QRCode.toCanvas(lnurl.toUpperCase(), { width: 260, margin: 2, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } }, (err, canvas) => {
-      if (!err) { canvas.style.borderRadius = '8px'; qrEl.appendChild(canvas) }
-    })
+    makeQR(document.getElementById('ln-qr'), lnurl.toUpperCase(), 260)
 
     const user = await Auth.waitLnauth(k1)
     _afterLogin()
@@ -576,10 +571,7 @@ async function createRental() {
     rentalId = data.rental_id
     setCheckoutStep('pay')
     document.getElementById('inv-text').textContent = data.invoice
-    document.getElementById('qrcode').innerHTML = ''
-    QRCode.toCanvas('lightning:' + data.invoice, { width: 220, margin: 2, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } }, (err, canvas) => {
-      if (!err) document.getElementById('qrcode').appendChild(canvas)
-    })
+    makeQR(document.getElementById('qrcode'), 'lightning:' + data.invoice, 220)
     pollTimer = setInterval(pollPayment, CONFIG.POLL_MS)
     showToast('Invoice created — scan to pay!', 'info')
   } catch (e) {
@@ -607,6 +599,18 @@ async function pollPayment() {
     }
   } catch {}
   finally { isPollPending = false }
+}
+
+// ─── QR Code helper ───────────────────────────────────────────────────────────
+// Uses qrcode-generator (global: qrcode lowercase), error level L = moins dense
+function makeQR(container, text, sizePx) {
+  container.innerHTML = ''
+  var qr = qrcode(0, 'L')   // type 0 = version auto
+  qr.addData(text)
+  qr.make()
+  container.innerHTML = qr.createSvgTag(4, 0)
+  var svg = container.querySelector('svg')
+  if (svg) svg.style.cssText = 'width:' + sizePx + 'px;height:' + sizePx + 'px;border-radius:8px;display:block;margin:0 auto'
 }
 
 // ─── Bind Events ──────────────────────────────────────────────────────────────

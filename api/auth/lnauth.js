@@ -177,7 +177,16 @@ async function handleStatus(req, res) {
     // LNAUTH key = 33-byte compressed pubkey (66 hex). Strip parity prefix → 64-char.
     const rawKey = session.lnauth_key
     const pubkey = rawKey.length === 66 ? rawKey.slice(2) : rawKey
-    const isAdmin = ADMIN_PUBKEYS.has(pubkey)
+
+    // First-run: if no admin exists yet, the first user to connect becomes admin
+    let isAdmin = ADMIN_PUBKEYS.has(pubkey)
+    if (!isAdmin) {
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'admin')
+      if (count === 0) isAdmin = true
+    }
 
     const { data: user, error: upsertErr } = await supabase
       .from('users')

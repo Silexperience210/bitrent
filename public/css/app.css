@@ -503,6 +503,7 @@ footer {
 .mr-live-val { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; }
 .mr-live-val.green { color: var(--green); }
 .mr-live-val.yellow { color: var(--yellow); }
+.mr-live-val.danger { color: var(--red); }
 .mr-live-val.btc { color: var(--btc); }
 
 .live-dot { display: inline-block; width: 7px; height: 7px; background: var(--green); border-radius: 50%; margin-right: 6px; animation: live-pulse 2s ease-in-out infinite; }

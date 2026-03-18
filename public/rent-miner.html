@@ -456,7 +456,13 @@
 
         async function loadMiners() {
             try {
-                const res = await fetch(`${API_URL}/mineurs`);
+                const res = await fetch(`${API_URL}/mineurs?_t=${Date.now()}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
                 const data = await res.json();
                 miners = data.data || [];
 

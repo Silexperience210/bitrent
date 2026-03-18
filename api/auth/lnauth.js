@@ -1,10 +1,11 @@
 /**
- * LNURL-auth — single handler for all 3 flows (1 Vercel function)
+ * LNURL-auth — single handler for all 4 flows (1 Vercel function)
  *
  * Routing via query params (all GET):
- *   ?                           → START  — generate k1 + LNURL, return { k1, lnurl }
- *   ?k1=&sig=&key=              → CALLBACK — called by Lightning wallet after user approves
- *   ?k1=                        → STATUS — client polls until authenticated, returns JWT
+ *   ?                           → START    — generate k1 + LNURL, return { k1, lnurl }
+ *   ?tag=login&k1=              → METADATA — wallet fetches LNURL-auth params (LUD-04 step 2)
+ *   ?k1=&sig=&key=              → CALLBACK — wallet sends signed challenge
+ *   ?k1=                        → STATUS   — client polls until authenticated, returns JWT
  *
  * Supabase table required:
  *   lnauth_sessions (k1 char(64) PK, lnauth_key varchar(66), authenticated bool, expires_at timestamptz)
@@ -20,14 +21,22 @@ const ADMIN_PUBKEYS  = new Set(
   (process.env.ADMIN_PUBKEYS || '').split(',').map(s => s.trim()).filter(Boolean)
 )
 
+function getHost(req) {
+  return process.env.NEXT_PUBLIC_BASE_URL ||
+    (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+    `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`
+}
+
 export default async function handler(req, res) {
   if (setCors(req, res)) return
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { k1, sig, key } = req.query
+  const { k1, sig, key, tag } = req.query
 
-  if (k1 && sig && key) return handleCallback(req, res, k1, sig, key)
-  if (k1)               return handleStatus(req, res, k1)
+  // LNURL-auth spec LUD-04: wallet fetches the encoded URL → must return metadata JSON
+  if (k1 && tag === 'login' && !sig && !key) return handleMetadata(req, res, k1)
+  if (k1 && sig && key)                      return handleCallback(req, res, k1, sig, key)
+  if (k1)                                    return handleStatus(req, res, k1)
   return handleStart(req, res)
 }
 
@@ -37,10 +46,7 @@ async function handleStart(req, res) {
   try {
     const k1 = crypto.randomBytes(32).toString('hex')
 
-    // Prefer the explicit public URL env var, fall back to request host
-    const host  = process.env.NEXT_PUBLIC_BASE_URL ||
-                  process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` ||
-                  `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`
+    const host  = getHost(req)
     const callbackUrl = `${host}/api/auth/lnauth?tag=login&k1=${k1}&action=login`
     const lnurl = toLnurl(callbackUrl)
 
@@ -67,6 +73,35 @@ async function handleStart(req, res) {
   } catch (err) {
     console.error('[lnauth/start] error:', err)
     return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
+// ── METADATA ──────────────────────────────────────────────────────────────────
+// LUD-04 step 2: wallet decoded the LNURL and GETs the URL.
+// Must return { tag, k1, callback, domain } so the wallet knows where to send the sig.
+async function handleMetadata(req, res, k1) {
+  res.setHeader('Content-Type', 'application/json')
+  try {
+    // Verify session exists and is not expired
+    const { data: session, error } = await supabase
+      .from('lnauth_sessions')
+      .select('k1')
+      .eq('k1', k1)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (error || !session) {
+      return res.status(200).json({ status: 'ERROR', reason: 'Unknown or expired challenge' })
+    }
+
+    const host     = getHost(req)
+    const callback = `${host}/api/auth/lnauth`
+    const domain   = new URL(host).hostname
+
+    return res.status(200).json({ tag: 'login', k1, callback, domain })
+  } catch (err) {
+    console.error('[lnauth/metadata] error:', err)
+    return res.status(200).json({ status: 'ERROR', reason: 'Internal error' })
   }
 }
 

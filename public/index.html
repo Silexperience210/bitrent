@@ -512,7 +512,7 @@ async function doLoginLnauth() {
     // QR code (lightning: URI so wallets auto-detect it)
     const qrEl = document.getElementById('ln-qr')
     qrEl.innerHTML = ''
-    new QRCode(qrEl, { text: 'lightning:' + lnurl, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' })
+    new QRCode(qrEl, { text: lnurl.toUpperCase(), width: 220, height: 220, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M })
 
     const user = await Auth.waitLnauth(k1)
     _afterLogin()

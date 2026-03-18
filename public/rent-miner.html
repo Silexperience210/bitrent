@@ -443,14 +443,15 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        const API_URL = 'https://workspace-omega-opal.vercel.app/api';
+        const API_URL = '/api';
         let miners = [];
         let selectedMiner = null;
         let selectedPool = null;
         let pools = {
-            'stratum-v2': { name: 'Stratum V2', fee: 1 },
-            'ocean': { name: 'OCEAN', fee: 0.5 },
-            'chauffagistes': { name: 'Chauffagistes-pool.fr', fee: 1.2 }
+            'ocean':   { name: 'OCEAN',        fee: 0 },
+            'foundry': { name: 'Foundry USA',   fee: 0 },
+            'luxor':   { name: 'Luxor',         fee: 0 },
+            'public':  { name: 'Public Pool',   fee: 0 },
         };
         let currentRental = null;
 
@@ -470,17 +471,17 @@
                 miners.forEach(miner => {
                     const isOnline = miner.status === 'online';
                     html += `
-                        <div class="miner-option ${isOnline ? '' : 'disabled'}" 
+                        <div class="miner-option ${isOnline ? '' : 'disabled'}"
                              onclick="${isOnline ? `selectMiner('${miner.id}')` : ''}"
                              style="opacity: ${isOnline ? 1 : 0.5}; cursor: ${isOnline ? 'pointer' : 'not-allowed'};">
                             <h3>${miner.name}</h3>
                             <div class="miner-stat">
                                 <span class="miner-stat-label">Hashrate:</span>
-                                <span>${(miner.hashrate || 100)} TH/s</span>
+                                <span>${(miner.hashrate_specs || '--')} TH/s</span>
                             </div>
                             <div class="miner-stat">
                                 <span class="miner-stat-label">Price:</span>
-                                <span>${(miner.price_per_minute || 500)} sats/min</span>
+                                <span>${(miner.sats_per_minute || '--')} sats/min</span>
                             </div>
                             <div class="miner-stat">
                                 <span class="miner-stat-label">Status:</span>
@@ -577,26 +578,25 @@
         }
 
         async function createRental() {
-            const payoutAddress = document.getElementById('payout-address').value;
-            const workerName = document.getElementById('worker-name').value;
+            const token = localStorage.getItem('bitrent_token');
+            if (!token) {
+                showStatus('⚠️ You must authenticate first. <a href="/" style="color:#00d4ff">Log in →</a>', 'error');
+                return;
+            }
+
+            const payoutAddress = document.getElementById('payout-address').value.trim();
 
             if (!selectedMiner || !selectedPool || !payoutAddress) {
                 showStatus('Please complete all fields', 'error');
                 return;
             }
 
-            showStatus('Creating rental...', 'loading');
+            showStatus('⚡ Creating rental & Lightning invoice...', 'loading');
 
             try {
-                const token = localStorage.getItem('bitrent_token');
                 const duration = parseInt(document.getElementById('duration').value) || 60;
 
-                // Get pool URL
-                const poolUrl = getPoolUrl(selectedPool);
-                const poolName = getSelectedPoolName();
-                
-                // Step 1: Create rental in database
-                const rentalRes = await fetch(`${API_URL}/rentals/create`, {
+                const res = await fetch(`${API_URL}/rentals/create`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -605,70 +605,54 @@
                     body: JSON.stringify({
                         miner_id: selectedMiner.id,
                         duration_minutes: duration,
-                        pool_type: selectedPool === 'custom' ? 'custom' : selectedPool,
-                        pool_url: poolUrl,
-                        pool_name: poolName,
-                        payout_address: payoutAddress,
-                        custom_worker_name: workerName
+                        pool_id: selectedPool,
+                        payout_address: payoutAddress
                     })
                 });
 
-                const rentalData = await rentalRes.json();
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to create rental');
 
-                if (!rentalRes.ok) {
-                    throw new Error(rentalData.error || 'Failed to create rental');
-                }
+                currentRental = {
+                    rental_id: data.rental_id,
+                    invoice: data.invoice,
+                    amount_sats: data.amount_sats,
+                };
 
-                // Step 2: Configure actual Bitaxe miner via HTTP API
-                showStatus('Configuring miner hardware...', 'loading');
-                
-                const configRes = await fetch(`${API_URL}/mineurs/configure`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        miner_id: selectedMiner.id,
-                        pool_url: poolUrl,
-                        pool_user: payoutAddress,
-                        pool_pass: 'x',
-                        worker_name: workerName
-                    })
-                });
-
-                const configData = await configRes.json();
-
-                if (!configRes.ok) {
-                    console.warn('Miner configuration warning:', configData.error);
-                    // Don't fail - DB rental was created, just miner config may have issues
-                }
-
-                // Step 3: Start mining
-                showStatus('Starting mining...', 'loading');
-                
-                const startRes = await fetch(`${API_URL}/mineurs/control`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        miner_id: selectedMiner.id,
-                        action: 'start'
-                    })
-                });
-
-                const startData = await startRes.json();
-                if (!startRes.ok) {
-                    console.warn('Mining start warning:', startData.error);
-                }
-
-                currentRental = rentalData.data;
-                showSuccess();
+                showPaymentScreen(data);
             } catch (error) {
                 showStatus('Error: ' + error.message, 'error');
             }
+        }
+
+        function showPaymentScreen(data) {
+            for (let i = 1; i <= 5; i++) {
+                const el = document.getElementById('step' + i);
+                if (el) el.style.display = 'none';
+            }
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('success-screen').style.display = 'none';
+
+            document.getElementById('payment-screen').style.display = 'block';
+            document.getElementById('payment-rental-id').textContent = data.rental_id;
+            document.getElementById('payment-amount').textContent = (data.amount_sats || 0).toLocaleString();
+
+            const invoice = data.invoice || '';
+            document.getElementById('payment-invoice').textContent = invoice;
+
+            const qrContainer = document.getElementById('qr-code');
+            qrContainer.innerHTML = '';
+            if (invoice) {
+                new QRCode(qrContainer, {
+                    text: invoice.toUpperCase(),
+                    width: 256,
+                    height: 256,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff'
+                });
+            }
+
+            checkPaymentStatus();
         }
 
         function getPoolUrl(poolKey) {
@@ -707,72 +691,20 @@
             document.getElementById('success-screen').style.display = 'block';
         }
 
-        async function proceedToPayment() {
-            if (!currentRental) {
-                showStatus('No rental found', 'error');
+        function proceedToPayment() {
+            // Invoice was already created in createRental() — just show the screen
+            if (!currentRental?.invoice) {
+                showStatus('No invoice available', 'error');
                 return;
             }
-
-            // Hide success screen, show payment screen
-            document.getElementById('success-screen').style.display = 'none';
-            document.getElementById('payment-screen').style.display = 'block';
-
-            // Generate invoice
-            try {
-                const invoiceRes = await fetch(`${API_URL}/payments/create-invoice`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('bitrent_token')}`
-                    },
-                    body: JSON.stringify({
-                        rental_id: currentRental.rental_id,
-                        amount_sats: Math.floor(currentRental.total_cost_sats || 0)
-                    })
-                });
-
-                if (!invoiceRes.ok) {
-                    throw new Error('Failed to create invoice');
-                }
-
-                const invoiceData = await invoiceRes.json();
-                const invoice = invoiceData.data?.bolt11 || invoiceData.bolt11 || '';
-
-                if (!invoice) {
-                    throw new Error('No invoice returned');
-                }
-
-                // Display invoice details
-                document.getElementById('payment-rental-id').textContent = currentRental.rental_id;
-                document.getElementById('payment-amount').textContent = Math.floor(currentRental.total_cost_sats || 0);
-                document.getElementById('payment-invoice').textContent = invoice;
-
-                // Generate QR code
-                const qrContainer = document.getElementById('qr-code');
-                qrContainer.innerHTML = '';
-                
-                new QRCode(qrContainer, {
-                    text: invoice,
-                    width: 256,
-                    height: 256,
-                    colorDark: '#00d4ff',
-                    colorLight: '#0f1419'
-                });
-
-                // Start checking payment status
-                checkPaymentStatus();
-            } catch (error) {
-                document.getElementById('payment-screen').style.display = 'none';
-                document.getElementById('success-screen').style.display = 'block';
-                showStatus('Payment Error: ' + error.message, 'error');
-            }
+            showPaymentScreen(currentRental);
         }
 
         async function checkPaymentStatus() {
-            if (!currentRental) return;
+            if (!currentRental?.rental_id) return;
 
             try {
-                const statusRes = await fetch(`${API_URL}/payments/check-status?rental_id=${currentRental.rental_id}`, {
+                const statusRes = await fetch(`${API_URL}/rentals/status?id=${currentRental.rental_id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('bitrent_token')}`
                     }
@@ -780,7 +712,7 @@
 
                 if (statusRes.ok) {
                     const statusData = await statusRes.json();
-                    const isPaid = statusData.data?.status === 'confirmed' || statusData.status === 'confirmed';
+                    const isPaid = statusData.status === 'active';
 
                     if (isPaid) {
                         document.getElementById('payment-status').innerHTML = '✅ Payment Confirmed!';
@@ -788,13 +720,11 @@
                         showStatus('✅ Mining started! Your Bitaxe is now mining.', 'success');
                     } else {
                         document.getElementById('payment-status').innerHTML = '⏳ Waiting for payment...';
-                        // Retry in 5 seconds
                         setTimeout(checkPaymentStatus, 5000);
                     }
                 }
             } catch (error) {
                 console.warn('Status check error:', error.message);
-                // Retry in 5 seconds
                 setTimeout(checkPaymentStatus, 5000);
             }
         }

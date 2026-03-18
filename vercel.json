@@ -16,14 +16,5 @@
       ]
     }
   ],
-  "crons": [
-    {
-      "path": "/api/cron/expire-rentals",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/health-check",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "crons": []
 }

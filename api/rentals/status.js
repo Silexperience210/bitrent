@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     .select(`
       id, status, start_time, end_time, duration_minutes,
       sats_per_minute, total_sats, invoice_hash, metadata,
-      mineur:mineurs ( id, name, hashrate_specs, status ),
+      mineur:mineurs ( id, name, hashrate_specs, status, metadata ),
       user:users ( id, pubkey_nostr )
     `)
     .eq('id', id)
@@ -84,6 +84,9 @@ export default async function handler(req, res) {
       id: rental.mineur?.id,
       name: rental.mineur?.name,
       hashrate_ths: parseFloat(rental.mineur?.hashrate_specs || 0),
+      last_hashrate: rental.mineur?.metadata?.last_hashrate ?? null,
+      last_temp: rental.mineur?.metadata?.last_temp ?? null,
+      last_power: rental.mineur?.metadata?.last_power ?? null,
     },
     start_time: rental.start_time,
     end_time: rental.end_time,

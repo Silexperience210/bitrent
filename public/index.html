@@ -1,19 +1,591 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BitRent - Mining Rental Platform</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitRent — Rent Bitcoin Miners with Lightning</title>
+  <meta name="description" content="Rent Bitaxe ASIC miners instantly. Pay with Lightning. No KYC.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="stylesheet" href="/css/app.css">
 </head>
-<body style="font-family: sans-serif; background: #0f1419; color: #e0e6ed; padding: 40px; text-align: center;">
-    <h1>⛏️ BitRent - Mining Rental Platform</h1>
-    <p>Rent Bitcoin miners by the minute with Lightning Network payments</p>
-    
-    <h2 style="margin-top: 40px;">Available Pages:</h2>
-    <ul style="list-style: none; padding: 0;">
-        <li><a href="/rent-miner.html" style="color: #00d4ff; text-decoration: none; font-size: 18px;">→ Rent a Miner</a></li>
-        <li><a href="/admin-dashboard.html" style="color: #00d4ff; text-decoration: none; font-size: 18px;">→ Admin Dashboard</a></li>
-        <li><a href="/miner-monitoring.html" style="color: #00d4ff; text-decoration: none; font-size: 18px;">→ Miner Monitoring</a></li>
-    </ul>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">⚡ Bit<span>Rent</span></a>
+    <div class="nav-links" id="nav-auth">
+      <button class="btn btn-primary btn-sm" id="btn-login">Login with Nostr</button>
+    </div>
+  </div>
+</nav>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Onboarding Banner (hidden by default, shown if no window.nostr) -->
+<div id="onboarding-banner" style="display:none">
+  <div class="container">
+    <div class="onboarding-banner">
+      <div class="onboarding-title">🔑 Connect your Nostr wallet to start mining</div>
+      <div class="onboarding-text">BitRent uses Nostr for identity (no email/password) and Lightning for instant payments. You need a browser extension to sign in.</div>
+      <div class="onboarding-actions">
+        <a href="https://getalby.com" target="_blank" rel="noopener" class="onboarding-btn">
+          <span class="onboarding-btn-icon">⚡</span>
+          <div>
+            <div>Install Alby</div>
+            <div class="onboarding-btn-sub">Best for Lightning + Nostr</div>
+          </div>
+        </a>
+        <a href="https://github.com/fiatjaf/nos2x" target="_blank" rel="noopener" class="onboarding-btn">
+          <span class="onboarding-btn-icon">🦎</span>
+          <div>
+            <div>Install nos2x</div>
+            <div class="onboarding-btn-sub">Lightweight Nostr signer</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Compact Hero -->
+<div class="compact-hero">
+  <div class="container">
+    <h1 class="compact-hero-title">Rent Bitcoin Miners<br><span>Pay with Lightning</span></h1>
+    <p class="compact-hero-sub">Real Bitaxe ASICs. Your pool. Your address. No KYC.</p>
+    <div>
+      <span class="hero-pill">⚡ <strong>Lightning only</strong></span>
+      <span class="hero-pill">🔐 <strong>Nostr auth</strong></span>
+      <span class="hero-pill" id="pill-online">⛏ <strong id="pill-count">—</strong> online</span>
+    </div>
+  </div>
+</div>
+
+<!-- Miners Section -->
+<section id="miners" class="page" style="padding-top:0">
+  <div class="container">
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <span class="filter-label">Filter</span>
+      <div class="filter-chip active" id="chip-available" onclick="toggleFilter('available')">Available only</div>
+      <div class="filter-sep"></div>
+      <span class="filter-label">Sort</span>
+      <div class="filter-chip active" id="chip-price" onclick="setSort('price')">Price ↑</div>
+      <div class="filter-chip" id="chip-hashrate" onclick="setSort('hashrate')">Hashrate ↓</div>
+      <div class="filter-chip" id="chip-efficiency" onclick="setSort('efficiency')">Efficiency</div>
+      <span id="miners-count" class="badge badge-online" style="display:none;margin-left:auto;"></span>
+    </div>
+
+    <!-- Miners Grid -->
+    <div id="miners-grid" class="miners-grid">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>⚡ BitRent — Bitcoin mining rentals powered by Lightning &amp; Nostr</p>
+  </div>
+</footer>
+
+<!-- Login Modal -->
+<div class="modal-backdrop" id="modal-login">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Login with Nostr</span>
+      <button class="modal-close" id="btn-close-login">×</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:20px;">
+      Sign in using your Nostr identity. No email, no password.
+    </p>
+    <div id="login-error" class="alert alert-error" style="display:none"></div>
+    <div class="wallet-opts">
+      <div class="wallet-opt" id="opt-extension">
+        <span class="wallet-opt-icon">🦎</span>
+        <div>
+          <div>Browser Extension</div>
+          <div class="wallet-opt-sub">Alby, nos2x, or any NIP-07 extension</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:16px;font-size:0.78rem;color:var(--text-dim);text-align:center;">
+      No extension? Install <a href="https://getalby.com" target="_blank">Alby</a> — free &amp; open source.
+    </p>
+  </div>
+</div>
+
+<!-- Checkout Bottom Sheet -->
+<div class="sheet-backdrop" id="sheet-rent">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+
+    <!-- Step Indicator -->
+    <div class="checkout-steps" id="cs-steps">
+      <div class="cs-item active" id="cs1">
+        <div class="cs-circle">1</div>
+        <span class="cs-label">Configure</span>
+        <div class="cs-line"></div>
+      </div>
+      <div class="cs-item" id="cs2">
+        <div class="cs-circle">2</div>
+        <span class="cs-label">Pay</span>
+        <div class="cs-line"></div>
+      </div>
+      <div class="cs-item" id="cs3">
+        <div class="cs-circle">3</div>
+        <span class="cs-label">Mining!</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Config -->
+    <div id="step-config">
+      <div class="sheet-title" id="sheet-miner-name">Rent Miner</div>
+      <div class="sheet-subtitle" id="sheet-miner-sub">Choose duration and pool</div>
+      <div class="form-group">
+        <label>Duration</label>
+        <div class="duration-grid" id="duration-grid">
+          <div class="duration-btn selected" data-mins="15">15<span class="duration-label">min</span></div>
+          <div class="duration-btn" data-mins="30">30<span class="duration-label">min</span></div>
+          <div class="duration-btn" data-mins="60">1<span class="duration-label">hour</span></div>
+          <div class="duration-btn" data-mins="360">6<span class="duration-label">h</span></div>
+          <div class="duration-btn" data-mins="720">12<span class="duration-label">h</span></div>
+          <div class="duration-btn" data-mins="1440">24<span class="duration-label">h</span></div>
+          <div class="duration-btn" data-mins="custom">✏️<span class="duration-label">custom</span></div>
+        </div>
+        <input type="number" id="custom-dur" min="1" max="1440" placeholder="Minutes (1–1440)" style="display:none;margin-top:8px;">
+      </div>
+      <div class="form-group">
+        <label>Mining Pool</label>
+        <select id="pool-select">
+          <option value="ocean">OCEAN Pool (non-custodial)</option>
+          <option value="public">Public Pool (open source)</option>
+          <option value="foundry">Foundry USA</option>
+          <option value="luxor">Luxor</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Bitcoin Payout Address</label>
+        <input type="text" id="payout-addr" placeholder="bc1q...">
+      </div>
+      <div class="price-summary">
+        <div class="price-row"><span>Duration</span><span id="s-dur">—</span></div>
+        <div class="price-row"><span>Rate</span><span id="s-rate">—</span></div>
+        <div class="price-row"><span>Total</span><span class="price-btc" id="s-total">—</span></div>
+      </div>
+      <div id="rent-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary btn-lg" style="width:100%" id="btn-create-rental">⚡ Create Invoice</button>
+    </div>
+
+    <!-- Step 2: Pay -->
+    <div id="step-pay" style="display:none">
+      <div class="sheet-title">Scan to Pay</div>
+      <div class="sheet-subtitle">Lightning payment — mining starts automatically</div>
+      <div class="alert alert-info">Send exact amount to activate your rental.</div>
+      <div class="qr-wrapper">
+        <div id="qrcode"></div>
+        <div class="invoice-copy">
+          <div class="invoice-text" id="inv-text"></div>
+          <button class="btn btn-secondary btn-sm" id="btn-copy">Copy</button>
+        </div>
+        <div class="payment-status-row">
+          <div class="spinner" id="pay-spin"></div>
+          <span id="pay-msg">Waiting for payment…</span>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;" id="btn-back">← Back</button>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="step-success" style="display:none">
+      <div class="success-burst">
+        <div class="success-icon">⛏️</div>
+        <h3 style="font-size:1.4rem;margin-bottom:8px;">Mining Started!</h3>
+        <p style="color:var(--text-muted);margin-bottom:24px;">Your Bitaxe is hashing. Track it on the dashboard.</p>
+        <a href="/dashboard.html" class="btn btn-primary btn-lg" style="width:100%">Open Dashboard →</a>
+        <button class="btn btn-ghost" style="width:100%;margin-top:10px;" onclick="closeSheet()">Mine another →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+<script>
+let selectedMiner = null, selectedMins = 15, rentalId = null, pollTimer = null, isPollPending = false
+let allMiners = [], filters = { available: true, sort: 'price' }
+const minersMap = new Map()
+let minerDurations = {}
+
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container')
+  const t = document.createElement('div')
+  t.className = `toast ${type}`
+  t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : '⚡'}</span><span>${esc(msg)}</span>`
+  container.appendChild(t)
+  setTimeout(() => {
+    t.classList.add('closing')
+    setTimeout(() => t.remove(), 300)
+  }, 3500)
+}
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+function checkOnboarding() {
+  if (!window.nostr) {
+    document.getElementById('onboarding-banner').style.display = ''
+  }
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+function toggleFilter(key) {
+  filters[key] = !filters[key]
+  document.getElementById('chip-available').classList.toggle('active', filters.available)
+  applyFilters()
+}
+
+function setSort(key) {
+  filters.sort = key
+  ;['price', 'hashrate', 'efficiency'].forEach(k => {
+    document.getElementById(`chip-${k}`).classList.toggle('active', k === key)
+  })
+  applyFilters()
+}
+
+function applyFilters() {
+  let m = [...allMiners]
+  if (filters.available) m = m.filter(x => x.available)
+  if (filters.sort === 'price') m.sort((a, b) => a.sats_per_minute - b.sats_per_minute)
+  else if (filters.sort === 'hashrate') m.sort((a, b) => b.hashrate_ths - a.hashrate_ths)
+  else if (filters.sort === 'efficiency') m.sort((a, b) => (a.sats_per_minute / a.hashrate_ths) - (b.sats_per_minute / b.hashrate_ths))
+  renderMiners(m)
+}
+
+// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
+function openSheet() {
+  document.getElementById('sheet-rent').classList.add('open')
+}
+
+function closeSheet() {
+  clearInterval(pollTimer)
+  document.getElementById('sheet-rent').classList.remove('open')
+}
+
+// ─── Checkout Step Management ─────────────────────────────────────────────────
+function setCheckoutStep(step) {
+  const steps = ['config', 'pay', 'success']
+  steps.forEach(s => {
+    document.getElementById(`step-${s}`).style.display = s === step ? '' : 'none'
+  })
+  const nums = { config: 1, pay: 2, success: 3 }
+  const cur = nums[step]
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById(`cs${i}`)
+    if (!el) continue
+    el.classList.remove('active', 'done')
+    if (i < cur) el.classList.add('done')
+    else if (i === cur) el.classList.add('active')
+  }
+}
+
+// ─── Nav ──────────────────────────────────────────────────────────────────────
+function updateNav() {
+  const u = Auth.getUser()
+  if (!u) return
+  document.getElementById('nav-auth').innerHTML =
+    `<span class="nav-user">${u.pubkey.slice(0, 10)}…</span>` +
+    (u.is_admin ? `<a href="/admin.html" class="btn btn-secondary btn-sm">Admin</a>` : '') +
+    `<a href="/dashboard.html" class="btn btn-secondary btn-sm">Dashboard</a>` +
+    `<button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Logout</button>`
+}
+
+// ─── Load Miners ──────────────────────────────────────────────────────────────
+async function loadMiners() {
+  try {
+    const { miners } = await api.get('/api/miners')
+    allMiners = miners
+    miners.forEach(m => minersMap.set(m.id, m))
+    applyFilters()
+    const n = miners.filter(m => m.available).length
+    const el = document.getElementById('miners-count')
+    el.textContent = `${n} available`
+    el.style.display = ''
+    document.getElementById('pill-count').textContent = n
+  } catch (e) {
+    document.getElementById('miners-grid').innerHTML =
+      `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><div class="empty-title">Failed to load miners</div><div class="empty-text">${esc(e.message)}</div></div>`
+    showToast('Failed to load miners: ' + e.message, 'error')
+  }
+}
+
+// ─── Render Miners ────────────────────────────────────────────────────────────
+function renderMiners(miners) {
+  const g = document.getElementById('miners-grid')
+  if (!miners.length) {
+    g.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⛏️</div><div class="empty-title">No miners match your filters</div><div class="empty-text">Try removing filters above.</div></div>`
+    return
+  }
+
+  // Compute efficiency range for normalization (lower eff ratio = better)
+  const efficiencies = miners.filter(m => m.available && m.hashrate_ths > 0).map(m => m.sats_per_minute / m.hashrate_ths)
+  const minEff = efficiencies.length ? Math.min(...efficiencies) : 0
+  const maxEff = efficiencies.length ? Math.max(...efficiencies) : 1
+
+  g.innerHTML = miners.map(m => {
+    const eff = m.hashrate_ths > 0 ? m.sats_per_minute / m.hashrate_ths : 0
+    // Invert: lowest eff ratio (best) = 100% bar
+    const effPct = maxEff === minEff ? 100 : Math.round((1 - (eff - minEff) / (maxEff - minEff)) * 100)
+
+    const dur = minerDurations[m.id] || 15
+    const totalSats = m.sats_per_minute * dur
+
+    const durationChips = [
+      { mins: 15, label: '15m' },
+      { mins: 30, label: '30m' },
+      { mins: 60, label: '1h' },
+      { mins: 360, label: '6h' },
+    ].map(d =>
+      `<div class="dur-chip${d.mins === dur ? ' sel' : ''}" data-mid="${esc(m.id)}" data-mins="${d.mins}" onclick="selectCardDuration('${esc(m.id)}',${d.mins},event)">${d.label}</div>`
+    ).join('')
+
+    return `
+    <div class="miner-card-v2${m.available ? '' : ' unavailable'}" id="card-${esc(m.id)}">
+      <div class="mcv2-header">
+        <div class="mcv2-meta">
+          <div class="mcv2-name">${esc(m.name)}</div>
+          <div class="mcv2-model">${esc(m.model || 'Bitaxe')}</div>
+        </div>
+        <span class="badge ${m.available ? 'badge-online' : 'badge-rented'}">${m.available ? 'Available' : 'Rented'}</span>
+      </div>
+      <div class="mcv2-stats">
+        <div><div class="mcv2-stat-label">Hashrate</div><div class="mcv2-stat-val">${esc(m.hashrate_ths)} TH/s</div></div>
+        <div><div class="mcv2-stat-label">Price</div><div class="mcv2-stat-val btc">${esc(m.sats_per_minute)} sats/min</div></div>
+        <div><div class="mcv2-stat-label">Uptime</div><div class="mcv2-stat-val">${parseFloat(m.uptime_percentage || 0).toFixed(1)}%</div></div>
+        <div><div class="mcv2-stat-label">Per Hour</div><div class="mcv2-stat-val btc">${(m.sats_per_minute * 60).toLocaleString()}</div></div>
+      </div>
+      ${m.available ? `
+      <div class="efficiency-bar-wrap">
+        <div class="efficiency-bar-top"><span>Efficiency</span><span>${effPct}%</span></div>
+        <div class="efficiency-bar-bg"><div class="efficiency-bar-fill" style="width:${effPct}%"></div></div>
+      </div>
+      <div class="dur-chips" id="dur-${esc(m.id)}">${durationChips}</div>
+      <button class="btn btn-primary" style="width:100%" id="rent-btn-${esc(m.id)}" onclick="rentMiner('${esc(m.id)}')">
+        ⚡ Rent — <span id="price-${esc(m.id)}">${totalSats.toLocaleString()} sats</span>
+      </button>
+      ` : `<button class="btn btn-ghost" style="width:100%" disabled>Currently Occupied</button>`}
+    </div>`
+  }).join('')
+}
+
+// ─── Card Duration Chip ───────────────────────────────────────────────────────
+function selectCardDuration(minerId, mins, e) {
+  e.stopPropagation()
+  minerDurations[minerId] = mins
+  const miner = minersMap.get(minerId)
+  if (!miner) return
+  const chips = document.querySelectorAll(`#dur-${minerId} .dur-chip`)
+  chips.forEach(c => c.classList.toggle('sel', parseInt(c.dataset.mins) === mins))
+  const priceEl = document.getElementById(`price-${minerId}`)
+  if (priceEl) priceEl.textContent = `${(miner.sats_per_minute * mins).toLocaleString()} sats`
+}
+
+// ─── Rent Miner ───────────────────────────────────────────────────────────────
+function rentMiner(minerId) {
+  const miner = minersMap.get(minerId)
+  if (!miner || !miner.available) return
+  if (!Auth.isLoggedIn()) {
+    selectedMiner = miner
+    openModal('modal-login')
+    return
+  }
+  selectedMiner = miner
+  selectedMins = minerDurations[minerId] || 15
+  // Pre-select matching duration button in sheet
+  document.querySelectorAll('#duration-grid .duration-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.mins) === selectedMins)
+  })
+  document.getElementById('sheet-miner-name').textContent = 'Rent ' + miner.name
+  document.getElementById('sheet-miner-sub').textContent = `${miner.hashrate_ths} TH/s · ${miner.sats_per_minute} sats/min`
+  setCheckoutStep('config')
+  updateSummary()
+  openSheet()
+}
+
+// ─── Summary ──────────────────────────────────────────────────────────────────
+function updateSummary() {
+  if (!selectedMiner) return
+  const m = selectedMins
+  document.getElementById('s-dur').textContent = m >= 60 ? `${m / 60}h` : `${m} min`
+  document.getElementById('s-rate').textContent = `${selectedMiner.sats_per_minute} sats/min`
+  document.getElementById('s-total').textContent = `${(selectedMiner.sats_per_minute * m).toLocaleString()} sats`
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open') }
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const errEl = document.getElementById('login-error')
+  errEl.style.display = 'none'
+  try {
+    await Auth.login()
+    closeModal('modal-login')
+    updateNav()
+    showToast('Logged in!', 'success')
+    if (selectedMiner) {
+      selectedMins = minerDurations[selectedMiner.id] || 15
+      document.querySelectorAll('#duration-grid .duration-btn').forEach(b => {
+        b.classList.toggle('selected', parseInt(b.dataset.mins) === selectedMins)
+      })
+      document.getElementById('sheet-miner-name').textContent = 'Rent ' + selectedMiner.name
+      document.getElementById('sheet-miner-sub').textContent = `${selectedMiner.hashrate_ths} TH/s · ${selectedMiner.sats_per_minute} sats/min`
+      setCheckoutStep('config')
+      updateSummary()
+      openSheet()
+    }
+  } catch (e) {
+    errEl.textContent = e.message
+    errEl.style.display = ''
+  }
+}
+
+// ─── Create Rental ────────────────────────────────────────────────────────────
+async function createRental() {
+  const errEl = document.getElementById('rent-err')
+  errEl.style.display = 'none'
+  const addr = document.getElementById('payout-addr').value.trim()
+  const pool = document.getElementById('pool-select').value
+  if (!addr) {
+    errEl.textContent = 'Enter your Bitcoin payout address.'
+    errEl.style.display = ''
+    return
+  }
+  const btn = document.getElementById('btn-create-rental')
+  btn.disabled = true
+  btn.textContent = 'Creating invoice…'
+  try {
+    const data = await api.post('/api/rentals/create', {
+      miner_id: selectedMiner.id,
+      duration_minutes: selectedMins,
+      pool_id: pool,
+      payout_address: addr
+    })
+    rentalId = data.rental_id
+    setCheckoutStep('pay')
+    document.getElementById('inv-text').textContent = data.invoice
+    document.getElementById('qrcode').innerHTML = ''
+    new QRCode(document.getElementById('qrcode'), {
+      text: `lightning:${data.invoice}`,
+      width: 220,
+      height: 220,
+      colorDark: '#000',
+      colorLight: '#fff'
+    })
+    pollTimer = setInterval(pollPayment, CONFIG.POLL_MS)
+    showToast('Invoice created — scan to pay!', 'info')
+  } catch (e) {
+    errEl.textContent = e.message
+    errEl.style.display = ''
+    showToast(e.message, 'error')
+  } finally {
+    btn.disabled = false
+    btn.textContent = '⚡ Create Invoice'
+  }
+}
+
+// ─── Poll Payment ─────────────────────────────────────────────────────────────
+async function pollPayment() {
+  if (isPollPending) return
+  isPollPending = true
+  try {
+    const d = await api.get(`/api/rentals/status?id=${rentalId}`)
+    if (d.status === 'active') {
+      clearInterval(pollTimer)
+      document.getElementById('pay-spin').style.display = 'none'
+      document.getElementById('pay-msg').textContent = '✅ Payment confirmed!'
+      showToast('Payment confirmed! Mining started.', 'success')
+      setTimeout(() => setCheckoutStep('success'), 900)
+    }
+  } catch {}
+  finally { isPollPending = false }
+}
+
+// ─── Bind Events ──────────────────────────────────────────────────────────────
+function bindEvents() {
+  document.getElementById('btn-login').onclick = () => openModal('modal-login')
+  document.getElementById('btn-close-login').onclick = () => closeModal('modal-login')
+  document.getElementById('opt-extension').onclick = doLogin
+  document.getElementById('btn-create-rental').onclick = createRental
+  document.getElementById('btn-back').onclick = () => {
+    clearInterval(pollTimer)
+    setCheckoutStep('config')
+  }
+  document.getElementById('btn-copy').onclick = () => {
+    const txt = document.getElementById('inv-text').textContent
+    navigator.clipboard.writeText(txt).then(() => {
+      document.getElementById('btn-copy').textContent = 'Copied!'
+      showToast('Invoice copied!', 'success')
+      setTimeout(() => { document.getElementById('btn-copy').textContent = 'Copy' }, 2000)
+    })
+  }
+
+  // Duration grid in sheet
+  document.getElementById('duration-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-mins]')
+    if (!btn) return
+    document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'))
+    btn.classList.add('selected')
+    const v = btn.dataset.mins
+    const ci = document.getElementById('custom-dur')
+    if (v === 'custom') {
+      ci.style.display = ''
+      ci.focus()
+      selectedMins = parseInt(ci.value) || 15
+    } else {
+      ci.style.display = 'none'
+      selectedMins = parseInt(v)
+    }
+    updateSummary()
+  })
+
+  document.getElementById('custom-dur').addEventListener('input', e => {
+    selectedMins = Math.min(1440, Math.max(1, parseInt(e.target.value) || 1))
+    updateSummary()
+  })
+
+  // Login modal backdrop click
+  document.getElementById('modal-login').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal('modal-login')
+  })
+
+  // Sheet backdrop click to close
+  document.getElementById('sheet-rent').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeSheet()
+  })
+
+  window.addEventListener('beforeunload', () => clearInterval(pollTimer))
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  checkOnboarding()
+  updateNav()
+  loadMiners()
+  bindEvents()
+})
+</script>
 </body>
 </html>

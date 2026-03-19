@@ -453,13 +453,12 @@ function renderMiners(miners) {
 
   // Compute efficiency range for normalization (lower eff ratio = better)
   const efficiencies = miners.filter(m => m.available && m.hashrate_ths > 0).map(m => m.sats_per_minute / m.hashrate_ths)
-  const minEff = efficiencies.length ? Math.min(...efficiencies) : 0
-  const maxEff = efficiencies.length ? Math.max(...efficiencies) : 1
+  const minEff = efficiencies.length ? Math.min(...efficiencies) : 1
 
   g.innerHTML = miners.map(m => {
     const eff = m.hashrate_ths > 0 ? m.sats_per_minute / m.hashrate_ths : 0
     // Invert: lowest eff ratio (best) = 100% bar
-    const effPct = maxEff === minEff ? 100 : Math.round((1 - (eff - minEff) / (maxEff - minEff)) * 100)
+    const effPct = eff > 0 ? Math.round((minEff / eff) * 100) : 0
 
     const dur = minerDurations[m.id] || 15
     const totalSats = m.sats_per_minute * dur

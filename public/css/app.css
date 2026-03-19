@@ -467,8 +467,8 @@ footer {
 
 .efficiency-bar-wrap { margin-bottom: 12px; }
 .efficiency-bar-top { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-muted); margin-bottom: 4px; }
-.efficiency-bar-bg { background: var(--bg3); border-radius: 20px; height: 3px; overflow: hidden; }
-.efficiency-bar-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, var(--green), var(--btc)); transition: width 0.4s ease; }
+.efficiency-bar-bg { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; height: 8px; overflow: hidden; }
+.efficiency-bar-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, var(--green), var(--btc)); transition: width 0.4s ease; box-shadow: 0 0 6px rgba(247,147,26,0.4); }
 
 .dur-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
 .dur-chip {

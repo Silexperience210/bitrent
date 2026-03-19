@@ -753,7 +753,7 @@ function startCockpit(rental) {
 async function fetchLiveStats() {
   if (!rentalId) return
   try {
-    const d = await api.get(`/api/rentals/live?id=${rentalId}`)
+    const d = await api.get(`/api/rentals/status?id=${rentalId}&live=1`)
     document.getElementById('cs-best-diff').textContent = formatDiff(d.bestSessionDiff)
     document.getElementById('cs-hash').textContent = d.hashrate > 0
       ? (d.hashrate / 1e9).toFixed(2) + ' GH/s'

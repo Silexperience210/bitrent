@@ -2,7 +2,7 @@ import { supabase } from '../_lib/supabase.js'
 import { setCors } from '../_lib/cors.js'
 import { verify, fromHeader } from '../_lib/jwt.js'
 import { lookupInvoice } from '../_lib/nwc.js'
-import { getPoolConfig, setPool, restartMiner } from '../_lib/bitaxe.js'
+import { getPoolConfig, setPool, restartMiner, getLiveStats } from '../_lib/bitaxe.js'
 
 export default async function handler(req, res) {
   if (setCors(req, res)) return
@@ -12,8 +12,28 @@ export default async function handler(req, res) {
   const payload = token ? verify(token) : null
   if (!payload) return res.status(401).json({ error: 'Authentication required' })
 
-  const { id } = req.query
+  const { id, live } = req.query
   if (!id) return res.status(400).json({ error: 'Rental id required' })
+
+  // ?live=1 — return live Bitaxe stats only (lightweight path)
+  if (live === '1') {
+    const { data: r } = await supabase
+      .from('rentals')
+      .select('id, status, mineur:mineurs ( ip_address, port, metadata ), user:users ( pubkey_nostr )')
+      .eq('id', id).single()
+    if (!r) return res.status(404).json({ error: 'Rental not found' })
+    if (!payload.is_admin && r.user.pubkey_nostr !== payload.pubkey)
+      return res.status(403).json({ error: 'Access denied' })
+    if (r.status !== 'active') return res.status(409).json({ error: 'Rental not active' })
+    try {
+      const stats = await getLiveStats(
+        r.mineur?.ip_address, r.mineur?.port || 80, r.mineur?.metadata?.public_url || null
+      )
+      return res.status(200).json(stats)
+    } catch (err) {
+      return res.status(502).json({ error: 'Could not reach miner', detail: err.message })
+    }
+  }
 
   // Fetch rental with miner info (include ip_address for Bitaxe API calls)
   const { data: rental, error } = await supabase

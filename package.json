@@ -12,6 +12,7 @@
     "build": "echo 'Static site - no build step'"
   },
   "dependencies": {
+    "@getalby/sdk": "^7.0.0",
     "@noble/curves": "^1.4.0",
     "@supabase/supabase-js": "^2.39.0",
     "jsonwebtoken": "^9.0.0",

@@ -70,3 +70,4 @@ docs/.cache/
 perf_logs/
 
 .vercel
+.env*.local

@@ -19,7 +19,7 @@
   "crons": [
     {
       "path": "/api/cron/expire-rentals",
-      "schedule": "* * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }

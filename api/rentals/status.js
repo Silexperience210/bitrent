@@ -115,6 +115,29 @@ export default async function handler(req, res) {
   const remainingMs = Math.max(0, endTime - now)
   const elapsedMs = Math.max(0, now - startTime)
 
+  // Auto-expire active rentals whose end_time has passed
+  if (rental.status === 'active' && endTime < now) {
+    const nowIso = new Date().toISOString()
+    const ip   = rental.mineur?.ip_address
+    const port = rental.mineur?.port || 80
+    const publicUrl = rental.mineur?.metadata?.public_url || null
+    const backup = rental.metadata?.owner_config_backup
+
+    await supabase.from('rentals').update({ status: 'completed', updated_at: nowIso }).eq('id', rental.id)
+    rental.status = 'completed'
+
+    if (ip && backup?.stratumURL) {
+      try {
+        const ownerPoolUrl = `stratum+tcp://${backup.stratumURL}:${backup.stratumPort}`
+        await setPool(ip, port, ownerPoolUrl, backup.stratumUser, backup.stratumPassword, publicUrl)
+        await restartMiner(ip, port, publicUrl)
+        console.log(`[rentals/status] Miner ${ip} restored after rental ${rental.id} expired`)
+      } catch (err) {
+        console.error(`[rentals/status] Failed to restore miner after expiry:`, err.message)
+      }
+    }
+  }
+
   return res.status(200).json({
     id: rental.id,
     status: rental.status,

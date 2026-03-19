@@ -1,16 +1,28 @@
 /**
  * bitaxe.js — Bitaxe/AxeOS HTTP API helpers
  *
- * NOTE: The backend must be able to reach the miner's IP address.
- * If the miner is on a local network (192.168.x.x), you must either:
- *   - Port-forward the miner's port 80 on your router, or
- *   - Self-host the backend on the same network as the miners.
+ * ip_address can be:
+ *   - A local IP:            "192.168.1.166"         → http://192.168.1.166:80/...
+ *   - A Cloudflare tunnel:   "abc.trycloudflare.com" → https://abc.trycloudflare.com/...
+ *   - A full URL base:       "https://abc.example.com" → used as-is
  */
 
 const TIMEOUT_MS = 8000
 
 function signal() {
   return AbortSignal.timeout(TIMEOUT_MS)
+}
+
+/**
+ * Build base URL from ip + port.
+ * If ip looks like a full URL (starts with http) or a domain, use https with no port.
+ */
+function baseUrl(ip, port = 80) {
+  if (!ip) throw new Error('Miner IP/host is not set')
+  if (ip.startsWith('http://') || ip.startsWith('https://')) return ip.replace(/\/$/, '')
+  // Domain name (not a raw IP) → use HTTPS, ignore port
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return `https://${ip}`
+  return `http://${ip}:${port}`
 }
 
 /**
@@ -27,7 +39,7 @@ function parseStratumUrl(fullUrl) {
  * Returns { stratumURL, stratumPort, stratumUser, stratumPassword }
  */
 export async function getPoolConfig(ip, port = 80) {
-  const res = await fetch(`http://${ip}:${port}/api/system/info`, { signal: signal() })
+  const res = await fetch(`${baseUrl(ip, port)}/api/system/info`, { signal: signal() })
   if (!res.ok) throw new Error(`Bitaxe /api/system/info returned ${res.status}`)
   const d = await res.json()
   return {
@@ -40,18 +52,11 @@ export async function getPoolConfig(ip, port = 80) {
 
 /**
  * Configure the Bitaxe to mine toward a specific pool + payout address.
- * Sends PATCH /api/system then POST /api/system/restart.
- *
- * @param {string} ip           - Miner IP (must be reachable from the backend)
- * @param {number} port         - Miner HTTP port (default 80)
- * @param {string} poolUrl      - Full stratum URL, e.g. "stratum+tcp://mine.ocean.xyz:3333"
- * @param {string} stratumUser  - Worker name, e.g. "bc1q...address.bitrent"
- * @param {string} [stratumPassword] - Stratum password (default "x")
  */
 export async function setPool(ip, port = 80, poolUrl, stratumUser, stratumPassword = 'x') {
   const { host, port: stratumPort } = parseStratumUrl(poolUrl)
 
-  const res = await fetch(`http://${ip}:${port}/api/system`, {
+  const res = await fetch(`${baseUrl(ip, port)}/api/system`, {
     method:  'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ stratumURL: host, stratumPort, stratumUser, stratumPassword }),
@@ -64,7 +69,7 @@ export async function setPool(ip, port = 80, poolUrl, stratumUser, stratumPasswo
  * Restart the Bitaxe (required to apply new pool config).
  */
 export async function restartMiner(ip, port = 80) {
-  const res = await fetch(`http://${ip}:${port}/api/system/restart`, {
+  const res = await fetch(`${baseUrl(ip, port)}/api/system/restart`, {
     method: 'POST',
     signal: signal(),
   })

@@ -611,3 +611,147 @@ footer {
 .nwc-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted); }
 .nwc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
 .nwc-dot.ok { background: var(--green); animation: live-pulse 3s infinite; }
+
+/* ============================================================
+   Design V2 — Onboarding Steps, Styled QR, Terminal, Cockpit
+   ============================================================ */
+
+/* ---- Onboarding Steps ---- */
+.ob-banner-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; }
+.onboarding-steps { display: flex; flex-direction: column; gap: 0; }
+.onboarding-step {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 0; opacity: 0; transform: translateX(-14px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  border-bottom: 1px solid var(--border);
+}
+.onboarding-step:last-child { border-bottom: none; }
+.onboarding-step.visible { opacity: 1; transform: none; }
+.ob-num {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border-bright); display: flex;
+  align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
+  transition: all 0.3s ease; margin-top: 2px;
+}
+.ob-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+.ob-content { flex: 1; }
+.ob-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 3px; }
+.ob-sub { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
+.ob-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Styled QR Code ---- */
+.qr-styled-outer { position: relative; display: inline-block; margin: 0 auto; }
+.qr-glow-ring {
+  position: absolute; inset: -8px; border-radius: 18px;
+  background: conic-gradient(var(--btc) 0%, #ffd080 25%, var(--btc) 50%, #ffd080 75%, var(--btc) 100%);
+  animation: qr-spin 6s linear infinite;
+  z-index: 0;
+}
+.qr-styled-frame {
+  position: relative; z-index: 1; background: #fff;
+  border-radius: 12px; padding: 6px; overflow: hidden;
+  box-shadow: 0 0 20px rgba(247,147,26,0.25);
+}
+.qr-styled-frame svg { display: block; }
+.qr-bolt {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 34px; height: 34px; background: #fff; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 2;
+  pointer-events: none;
+}
+@keyframes qr-spin { to { transform: rotate(360deg); } }
+.qr-copy-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 8px 16px; cursor: pointer;
+  font-size: 0.82rem; font-weight: 600; color: var(--text);
+  transition: all 0.2s; font-family: var(--font);
+}
+.qr-copy-btn:hover { border-color: var(--btc); }
+.qr-copy-btn.copied { border-color: var(--green); color: var(--green); }
+.qr-copy-btn.copied::before { content: '✓ '; }
+
+/* ---- Terminal Receipt ---- */
+.terminal {
+  background: #0d1117; border: 1px solid #30363d;
+  border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 16px;
+}
+.terminal-header {
+  background: #161b22; padding: 8px 14px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; color: #8b949e; font-family: var(--font-mono);
+  border-bottom: 1px solid #30363d;
+}
+.term-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.term-dot.r { background: #ff5f57; }
+.term-dot.y { background: #febc2e; }
+.term-dot.g { background: #28c840; }
+.terminal-body {
+  padding: 16px; font-family: var(--font-mono); font-size: 0.82rem;
+  min-height: 140px; line-height: 1.6;
+}
+.term-line { opacity: 0; margin-bottom: 2px; white-space: pre; animation: term-in 0.15s ease forwards; }
+@keyframes term-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+.term-ok { color: #3fb950; }
+.term-key { color: #8b949e; }
+.term-val { color: #e6edf3; }
+.term-btc { color: var(--btc); }
+.term-cursor { display: inline-block; background: #3fb950; width: 7px; height: 13px; vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---- Cockpit Timer ---- */
+.cockpit-live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+  color: var(--green); border-radius: 20px; padding: 4px 14px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.cockpit-wrap {
+  display: flex; justify-content: center; align-items: center;
+  position: relative; width: 200px; height: 200px;
+  margin: 16px auto 24px;
+}
+.cockpit-ring {
+  position: absolute; top: 0; left: 0;
+  width: 200px; height: 200px;
+  transform: rotate(-90deg);
+}
+.ring-bg { fill: none; stroke: var(--bg3); stroke-width: 8; }
+.ring-fill {
+  fill: none; stroke: var(--btc); stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
+  filter: drop-shadow(0 0 8px rgba(247,147,26,0.5));
+}
+.ring-fill.urgent { stroke: var(--red); filter: drop-shadow(0 0 8px rgba(239,68,68,0.7)); }
+.cockpit-center { position: relative; z-index: 1; text-align: center; }
+.cockpit-label {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2.5px;
+  color: var(--text-dim); margin-bottom: 4px;
+}
+.cockpit-time {
+  font-family: var(--font-mono); font-size: 2.6rem; font-weight: 700;
+  color: var(--btc); line-height: 1; letter-spacing: 3px;
+}
+.cockpit-time.urgent { color: var(--red); }
+.cockpit-sublabel { font-size: 0.65rem; color: var(--text-muted); margin-top: 6px; }
+.cockpit-stat-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px;
+}
+.cockpit-stat {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 8px; text-align: center;
+}
+.cockpit-stat-label {
+  font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-dim); margin-bottom: 4px;
+}
+.cockpit-stat-val {
+  font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
+  word-break: break-all; color: var(--text);
+}

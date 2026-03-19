@@ -26,23 +26,39 @@
 <div id="onboarding-banner" style="display:none">
   <div class="container">
     <div class="onboarding-banner">
-      <div class="onboarding-title">🔑 Connect your Nostr wallet to start mining</div>
-      <div class="onboarding-text">BitRent uses Nostr for identity (no email/password) and Lightning for instant payments. You need a browser extension to sign in.</div>
-      <div class="onboarding-actions">
-        <a href="https://getalby.com" target="_blank" rel="noopener" class="onboarding-btn">
-          <span class="onboarding-btn-icon">⚡</span>
-          <div>
-            <div>Install Alby</div>
-            <div class="onboarding-btn-sub">Best for Lightning + Nostr</div>
+      <div class="ob-banner-title">⛏ Start mining Bitcoin in 3 steps</div>
+      <div class="onboarding-steps">
+        <div class="onboarding-step" id="ob-step-1">
+          <div class="ob-num">1</div>
+          <div class="ob-icon">⚡</div>
+          <div class="ob-content">
+            <div class="ob-title">Get a Lightning wallet</div>
+            <div class="ob-sub">Alby handles both Lightning payments and Nostr identity — one install, done.</div>
+            <div class="ob-actions">
+              <a href="https://getalby.com" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">Install Alby</a>
+              <a href="https://github.com/fiatjaf/nos2x" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">nos2x (Nostr only)</a>
+            </div>
           </div>
-        </a>
-        <a href="https://github.com/fiatjaf/nos2x" target="_blank" rel="noopener" class="onboarding-btn">
-          <span class="onboarding-btn-icon">🦎</span>
-          <div>
-            <div>Install nos2x</div>
-            <div class="onboarding-btn-sub">Lightweight Nostr signer</div>
+        </div>
+        <div class="onboarding-step" id="ob-step-2">
+          <div class="ob-num">2</div>
+          <div class="ob-icon">🔐</div>
+          <div class="ob-content">
+            <div class="ob-title">Sign in — no email, no KYC</div>
+            <div class="ob-sub">Your Lightning/Nostr key is your identity. Zero account creation.</div>
+            <div class="ob-actions">
+              <button class="btn btn-primary btn-sm" onclick="showLoginMethods(); openModal('modal-login')">⚡ Connect now</button>
+            </div>
           </div>
-        </a>
+        </div>
+        <div class="onboarding-step" id="ob-step-3">
+          <div class="ob-num">3</div>
+          <div class="ob-icon">⛏️</div>
+          <div class="ob-content">
+            <div class="ob-title">Pick a miner, pay, mine</div>
+            <div class="ob-sub">Choose your pool and payout address. Pay the invoice. Mining starts in seconds.</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -220,10 +236,18 @@
       <div class="sheet-subtitle">Lightning payment — mining starts automatically</div>
       <div class="alert alert-info">Send exact amount to activate your rental.</div>
       <div class="qr-wrapper">
-        <div id="qrcode"></div>
+        <!-- Styled QR -->
+        <div class="qr-styled-outer">
+          <div class="qr-glow-ring"></div>
+          <div class="qr-styled-frame">
+            <div id="qrcode"></div>
+          </div>
+          <div class="qr-bolt">⚡</div>
+        </div>
+        <!-- Invoice text + copy -->
         <div class="invoice-copy">
           <div class="invoice-text" id="inv-text"></div>
-          <button class="btn btn-secondary btn-sm" id="btn-copy">Copy</button>
+          <button class="qr-copy-btn" id="btn-copy">Copy</button>
         </div>
         <div class="payment-status-row">
           <div class="spinner" id="pay-spin"></div>
@@ -233,14 +257,50 @@
       <button class="btn btn-ghost" style="width:100%;margin-top:8px;" id="btn-back">← Back</button>
     </div>
 
-    <!-- Step 3: Success -->
+    <!-- Step 3: Success — Terminal Receipt + Cockpit Timer -->
     <div id="step-success" style="display:none">
-      <div class="success-burst">
-        <div class="success-icon">⛏️</div>
-        <h3 style="font-size:1.4rem;margin-bottom:8px;">Mining Started!</h3>
-        <p style="color:var(--text-muted);margin-bottom:24px;">Your Bitaxe is hashing. Track it on the dashboard.</p>
+      <!-- Terminal Receipt (shown first) -->
+      <div id="receipt-terminal" class="terminal" style="display:none">
+        <div class="terminal-header">
+          <div class="term-dot r"></div>
+          <div class="term-dot y"></div>
+          <div class="term-dot g"></div>
+          <span style="margin-left:6px">bitrent — payment confirmed</span>
+        </div>
+        <div id="terminal-lines" class="terminal-body"></div>
+      </div>
+      <!-- Cockpit Timer (shown after receipt) -->
+      <div id="cockpit-view" style="display:none">
+        <div style="text-align:center;margin-bottom:12px">
+          <div class="cockpit-live-badge"><span class="live-dot"></span>LIVE MINING</div>
+        </div>
+        <div class="cockpit-wrap">
+          <svg class="cockpit-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"/>
+            <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="cockpit-center">
+            <div class="cockpit-label">REMAINING</div>
+            <div class="cockpit-time" id="cockpit-time">--:--</div>
+            <div class="cockpit-sublabel" id="cockpit-pool-label">—</div>
+          </div>
+        </div>
+        <div class="cockpit-stat-row">
+          <div class="cockpit-stat">
+            <div class="cockpit-stat-label">MINER</div>
+            <div class="cockpit-stat-val" id="cs-miner">—</div>
+          </div>
+          <div class="cockpit-stat">
+            <div class="cockpit-stat-label">HASHRATE</div>
+            <div class="cockpit-stat-val" id="cs-hash">—</div>
+          </div>
+          <div class="cockpit-stat">
+            <div class="cockpit-stat-label">PAYOUT</div>
+            <div class="cockpit-stat-val" id="cs-addr">—</div>
+          </div>
+        </div>
         <a href="/dashboard.html" class="btn btn-primary btn-lg" style="width:100%">Open Dashboard →</a>
-        <button class="btn btn-ghost" style="width:100%;margin-top:10px;" onclick="closeSheet()">Mine another →</button>
+        <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="closeSheet()">Mine another →</button>
       </div>
     </div>
 
@@ -256,6 +316,8 @@ let selectedMiner = null, selectedMins = 15, rentalId = null, pollTimer = null, 
 let allMiners = [], filters = { available: true, sort: 'price' }
 const minersMap = new Map()
 let minerDurations = {}
+let activeRental = null, cockpitInterval = null
+const POOL_LABELS = { ocean: 'OCEAN', foundry: 'Foundry USA', luxor: 'Luxor', public: 'Public Pool', chauffagistes: 'Chauffagistes 🇫🇷' }
 
 function esc(str) {
   return String(str == null ? '' : str)
@@ -277,9 +339,15 @@ function showToast(msg, type = 'info') {
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 function checkOnboarding() {
-  // Only show banner if not logged in AND no Nostr extension (LNAUTH doesn't need one)
   if (!Auth.isLoggedIn() && !window.nostr) {
     document.getElementById('onboarding-banner').style.display = ''
+    // Animate steps in sequentially
+    ;['ob-step-1', 'ob-step-2', 'ob-step-3'].forEach((id, i) => {
+      setTimeout(() => {
+        const el = document.getElementById(id)
+        if (el) el.classList.add('visible')
+      }, 150 + i * 200)
+    })
   }
 }
 
@@ -314,6 +382,9 @@ function openSheet() {
 
 function closeSheet() {
   clearInterval(pollTimer)
+  clearInterval(cockpitInterval)
+  cockpitInterval = null
+  activeRental = null
   document.getElementById('sheet-rent').classList.remove('open')
 }
 
@@ -598,22 +669,105 @@ async function pollPayment() {
       document.getElementById('pay-spin').style.display = 'none'
       document.getElementById('pay-msg').textContent = '✅ Payment confirmed!'
       showToast('Payment confirmed! Mining started.', 'success')
-      setTimeout(() => setCheckoutStep('success'), 900)
+      setTimeout(() => showReceipt(d), 800)
     }
   } catch {}
   finally { isPollPending = false }
 }
 
+// ─── Terminal Receipt ─────────────────────────────────────────────────────────
+function showReceipt(rental) {
+  setCheckoutStep('success')
+  const term = document.getElementById('receipt-terminal')
+  const cockpit = document.getElementById('cockpit-view')
+  term.style.display = ''
+  cockpit.style.display = 'none'
+
+  const poolId = document.getElementById('pool-select').value
+  const addr = rental.mining_config?.payout_address || document.getElementById('payout-addr').value.trim()
+  const shortAddr = addr.slice(0, 10) + '…' + addr.slice(-6)
+  const poolLabel = POOL_LABELS[poolId] || poolId
+
+  const lines = [
+    { cls: 'term-ok',  text: '▶ PAYMENT CONFIRMED ✓' },
+    { cls: '',         text: '<span class="term-key">  MINER ........... </span><span class="term-val">' + esc(selectedMiner?.name || '—') + '</span>' },
+    { cls: '',         text: '<span class="term-key">  POOL  ........... </span><span class="term-btc">' + esc(poolLabel) + '</span>' },
+    { cls: '',         text: '<span class="term-key">  ADDRESS ......... </span><span class="term-val">' + esc(shortAddr) + '</span>' },
+    { cls: '',         text: '<span class="term-key">  DURATION ........ </span><span class="term-val">' + selectedMins + ' min</span>' },
+    { cls: '',         text: '<span class="term-key">  HASHRATE ........ </span><span class="term-val">' + esc(String(selectedMiner?.hashrate_ths || '—')) + ' TH/s</span>' },
+    { cls: 'term-ok',  text: '  STATUS .......... ACTIVE ✓ <span class="term-cursor"></span>' },
+  ]
+
+  const container = document.getElementById('terminal-lines')
+  container.innerHTML = ''
+  lines.forEach((line, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div')
+      el.className = 'term-line' + (line.cls ? ' ' + line.cls : '')
+      el.innerHTML = line.text
+      container.appendChild(el)
+      if (i === lines.length - 1) setTimeout(() => startCockpit(rental), 900)
+    }, i * 230)
+  })
+}
+
+// ─── Cockpit Timer ────────────────────────────────────────────────────────────
+function startCockpit(rental) {
+  activeRental = rental
+  document.getElementById('receipt-terminal').style.display = 'none'
+  document.getElementById('cockpit-view').style.display = ''
+
+  const poolId = document.getElementById('pool-select').value
+  const addr = rental.mining_config?.payout_address || document.getElementById('payout-addr').value.trim()
+
+  document.getElementById('cs-miner').textContent = selectedMiner?.name || '—'
+  document.getElementById('cs-hash').textContent = (selectedMiner?.hashrate_ths || '—') + ' TH/s'
+  document.getElementById('cs-addr').textContent = addr.slice(0, 8) + '…'
+  document.getElementById('cockpit-pool-label').textContent = POOL_LABELS[poolId] || poolId
+
+  if (cockpitInterval) clearInterval(cockpitInterval)
+  cockpitInterval = setInterval(tickCockpit, 1000)
+  tickCockpit()
+}
+
+function tickCockpit() {
+  if (!activeRental) return
+  const endTime   = new Date(activeRental.end_time).getTime()
+  const startTime = new Date(activeRental.start_time).getTime()
+  const now       = Date.now()
+  const totalMs   = endTime - startTime
+  const remainMs  = Math.max(0, endTime - now)
+
+  const mins = Math.floor(remainMs / 60000)
+  const secs = Math.floor((remainMs % 60000) / 1000)
+  const timeEl = document.getElementById('cockpit-time')
+  timeEl.textContent = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0')
+
+  // Ring animation — circumference 2π×52 ≈ 326.73
+  const pct    = totalMs > 0 ? remainMs / totalMs : 0
+  const offset = 326.73 * (1 - pct)
+  const ringEl = document.getElementById('ring-fill')
+  ringEl.style.strokeDashoffset = offset
+  const urgent = remainMs < totalMs * 0.15
+  ringEl.classList.toggle('urgent', urgent)
+  timeEl.classList.toggle('urgent', urgent)
+
+  if (remainMs <= 0) {
+    clearInterval(cockpitInterval)
+    timeEl.textContent = '00:00'
+    document.getElementById('cockpit-pool-label').textContent = 'Session complete'
+  }
+}
+
 // ─── QR Code helper ───────────────────────────────────────────────────────────
-// Uses qrcode-generator (global: qrcode lowercase), error level L = moins dense
 function makeQR(container, text, sizePx) {
   container.innerHTML = ''
-  var qr = qrcode(0, 'L')   // type 0 = version auto
+  var qr = qrcode(0, 'L')
   qr.addData(text)
   qr.make()
-  container.innerHTML = qr.createSvgTag(4, 4)  // margin=4 modules = quiet zone obligatoire
+  container.innerHTML = qr.createSvgTag(4, 4)
   var svg = container.querySelector('svg')
-  if (svg) svg.style.cssText = 'width:' + sizePx + 'px;height:' + sizePx + 'px;border-radius:8px;display:block;margin:0 auto;background:#fff'
+  if (svg) svg.style.cssText = 'width:' + sizePx + 'px;height:' + sizePx + 'px;display:block;'
 }
 
 // ─── Bind Events ──────────────────────────────────────────────────────────────
@@ -635,9 +789,11 @@ function bindEvents() {
   document.getElementById('btn-copy').onclick = () => {
     const txt = document.getElementById('inv-text').textContent
     navigator.clipboard.writeText(txt).then(() => {
-      document.getElementById('btn-copy').textContent = 'Copied!'
+      const btn = document.getElementById('btn-copy')
+      btn.classList.add('copied')
+      btn.textContent = 'Copied!'
       showToast('Invoice copied!', 'success')
-      setTimeout(() => { document.getElementById('btn-copy').textContent = 'Copy' }, 2000)
+      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy' }, 2000)
     })
   }
 

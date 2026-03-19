@@ -285,18 +285,24 @@
             <div class="cockpit-sublabel" id="cockpit-pool-label">—</div>
           </div>
         </div>
+        <!-- Best Diff — prominent -->
+        <div class="cockpit-best-diff-wrap">
+          <div class="cockpit-best-label">SESSION BEST DIFF</div>
+          <div class="cockpit-best-val" id="cs-best-diff">—</div>
+          <div class="cockpit-best-sub" id="cs-best-sub"></div>
+        </div>
         <div class="cockpit-stat-row">
-          <div class="cockpit-stat">
-            <div class="cockpit-stat-label">MINER</div>
-            <div class="cockpit-stat-val" id="cs-miner">—</div>
-          </div>
           <div class="cockpit-stat">
             <div class="cockpit-stat-label">HASHRATE</div>
             <div class="cockpit-stat-val" id="cs-hash">—</div>
           </div>
           <div class="cockpit-stat">
-            <div class="cockpit-stat-label">PAYOUT</div>
-            <div class="cockpit-stat-val" id="cs-addr">—</div>
+            <div class="cockpit-stat-label">SHARES ✓</div>
+            <div class="cockpit-stat-val" id="cs-shares">—</div>
+          </div>
+          <div class="cockpit-stat">
+            <div class="cockpit-stat-label">TEMP</div>
+            <div class="cockpit-stat-val" id="cs-temp">—</div>
           </div>
         </div>
         <a href="/dashboard.html" class="btn btn-primary btn-lg" style="width:100%">Open Dashboard →</a>
@@ -383,7 +389,9 @@ function openSheet() {
 function closeSheet() {
   clearInterval(pollTimer)
   clearInterval(cockpitInterval)
+  clearInterval(liveStatsInterval)
   cockpitInterval = null
+  liveStatsInterval = null
   activeRental = null
   document.getElementById('sheet-rent').classList.remove('open')
 }
@@ -712,22 +720,54 @@ function showReceipt(rental) {
 }
 
 // ─── Cockpit Timer ────────────────────────────────────────────────────────────
+function formatDiff(d) {
+  if (!d || d === 0) return '—'
+  if (d >= 1e12) return (d / 1e12).toFixed(2) + ' T'
+  if (d >= 1e9)  return (d / 1e9).toFixed(2) + ' G'
+  if (d >= 1e6)  return (d / 1e6).toFixed(2) + ' M'
+  if (d >= 1e3)  return (d / 1e3).toFixed(1) + ' K'
+  return String(d)
+}
+
+let liveStatsInterval = null
+
 function startCockpit(rental) {
   activeRental = rental
   document.getElementById('receipt-terminal').style.display = 'none'
   document.getElementById('cockpit-view').style.display = ''
 
   const poolId = document.getElementById('pool-select').value
-  const addr = rental.mining_config?.payout_address || document.getElementById('payout-addr').value.trim()
-
-  document.getElementById('cs-miner').textContent = selectedMiner?.name || '—'
   document.getElementById('cs-hash').textContent = (selectedMiner?.hashrate_ths || '—') + ' TH/s'
-  document.getElementById('cs-addr').textContent = addr.slice(0, 8) + '…'
   document.getElementById('cockpit-pool-label').textContent = POOL_LABELS[poolId] || poolId
 
   if (cockpitInterval) clearInterval(cockpitInterval)
   cockpitInterval = setInterval(tickCockpit, 1000)
   tickCockpit()
+
+  // Fetch live stats immediately then every 20s
+  if (liveStatsInterval) clearInterval(liveStatsInterval)
+  fetchLiveStats()
+  liveStatsInterval = setInterval(fetchLiveStats, 20000)
+}
+
+async function fetchLiveStats() {
+  if (!rentalId) return
+  try {
+    const d = await api.get(`/api/rentals/live?id=${rentalId}`)
+    document.getElementById('cs-best-diff').textContent = formatDiff(d.bestSessionDiff)
+    document.getElementById('cs-hash').textContent = d.hashrate > 0
+      ? (d.hashrate / 1e9).toFixed(2) + ' GH/s'
+      : (selectedMiner?.hashrate_ths || '—') + ' TH/s'
+    document.getElementById('cs-shares').textContent = d.sharesAccepted ?? '—'
+    document.getElementById('cs-temp').textContent = d.temp ? d.temp + '°C' : '—'
+
+    // Block probability hint
+    const NETWORK_DIFF = 108e12 // ~108T current difficulty
+    if (d.bestSessionDiff > 0) {
+      const pct = ((d.bestSessionDiff / NETWORK_DIFF) * 100).toFixed(6)
+      document.getElementById('cs-best-sub').textContent = `${pct}% of a block`
+    }
+  } catch { /* silently ignore — miner may be unreachable */ }
 }
 
 function tickCockpit() {

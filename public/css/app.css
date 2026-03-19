@@ -755,3 +755,30 @@ footer {
   font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
   word-break: break-all; color: var(--text);
 }
+
+/* ---- Best Diff Block ---- */
+.cockpit-best-diff-wrap {
+  background: linear-gradient(135deg, rgba(247,147,26,0.08), rgba(247,147,26,0.03));
+  border: 1px solid rgba(247,147,26,0.3);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  text-align: center; margin-bottom: 12px;
+  position: relative; overflow: hidden;
+}
+.cockpit-best-diff-wrap::before {
+  content: ''; position: absolute; top: -40%; right: -10%;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(247,147,26,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cockpit-best-label {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-dim); margin-bottom: 6px;
+}
+.cockpit-best-val {
+  font-family: var(--font-mono); font-size: 2rem; font-weight: 700;
+  color: var(--btc); line-height: 1; letter-spacing: 1px;
+}
+.cockpit-best-sub {
+  font-size: 0.68rem; color: var(--text-muted); margin-top: 5px;
+  font-family: var(--font-mono);
+}

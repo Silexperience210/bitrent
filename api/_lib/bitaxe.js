@@ -54,6 +54,24 @@ export async function getPoolConfig(ip, port = 80, publicUrl = null) {
 }
 
 /**
+ * Fetch live mining stats from the Bitaxe.
+ * Returns { hashrate, temp, bestSessionDiff, bestDiff, sharesAccepted, sharesRejected }
+ */
+export async function getLiveStats(ip, port = 80, publicUrl = null) {
+  const res = await fetch(`${baseUrl(ip, port, publicUrl)}/api/system/info`, { signal: signal() })
+  if (!res.ok) throw new Error(`Bitaxe /api/system/info returned ${res.status}`)
+  const d = await res.json()
+  return {
+    hashrate:        d.hashRate        ?? d.hashRate_1m ?? 0,
+    temp:            d.temp            ?? 0,
+    bestSessionDiff: d.bestSessionDiff ?? 0,
+    bestDiff:        d.bestDiff        ?? 0,
+    sharesAccepted:  d.sharesAccepted  ?? 0,
+    sharesRejected:  d.sharesRejected  ?? 0,
+  }
+}
+
+/**
  * Configure the Bitaxe to mine toward a specific pool + payout address.
  */
 export async function setPool(ip, port = 80, poolUrl, stratumUser, stratumPassword = 'x', publicUrl = null) {

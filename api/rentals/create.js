@@ -4,9 +4,9 @@ import { verify, fromHeader } from '../_lib/jwt.js'
 import { makeInvoice } from '../_lib/nwc.js'
 
 const POOLS = {
-  ocean: { name: 'OCEAN', url: 'stratum+tcp://mine.ocean.xyz:3333' },
-  foundry: { name: 'Foundry USA', url: 'stratum+tcp://mining.foundrydigital.com:3333' },
-  luxor: { name: 'Luxor', url: 'stratum+tcp://us.luxor.tech:3333' },
+  ocean: { name: 'OCEAN', url: 'stratum+tcp://mine.ocean.xyz:3334' },
+  foundry: { name: 'Foundry USA', url: 'stratum+tcp://btc.foundryusapool.com:3333' },
+  luxor: { name: 'Luxor', url: 'stratum+tcp://btc.global.luxor.tech:700' },
   public: { name: 'Public Pool', url: 'stratum+tcp://public-pool.io:21496' },
   chauffagistes: { name: 'Chauffagistes', url: 'stratum+tcp://chauffagistes-pool.fr:3333' },
 }

@@ -617,10 +617,15 @@ function makeQR(container, text, sizePx) {
 
 // ─── Bind Events ──────────────────────────────────────────────────────────────
 function bindEvents() {
-  document.getElementById('btn-login').onclick = () => { showLoginMethods(); openModal('modal-login') }
-  document.getElementById('btn-close-login').onclick = () => closeModal('modal-login')
-  document.getElementById('opt-lnauth').onclick    = doLoginLnauth
-  document.getElementById('opt-extension').onclick = doLogin
+  // Login elements may not exist if user is already authenticated (updateNav replaces them)
+  const btnLogin = document.getElementById('btn-login')
+  if (btnLogin) btnLogin.onclick = () => { showLoginMethods(); openModal('modal-login') }
+  const btnCloseLogin = document.getElementById('btn-close-login')
+  if (btnCloseLogin) btnCloseLogin.onclick = () => closeModal('modal-login')
+  const optLnauth = document.getElementById('opt-lnauth')
+  if (optLnauth) optLnauth.onclick = doLoginLnauth
+  const optExt = document.getElementById('opt-extension')
+  if (optExt) optExt.onclick = doLogin
   document.getElementById('btn-create-rental').onclick = createRental
   document.getElementById('btn-back').onclick = () => {
     clearInterval(pollTimer)

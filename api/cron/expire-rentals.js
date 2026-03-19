@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   // 1. Find active rentals past their end_time (with miner info for restoration)
   const { data: expiredActive } = await supabase
     .from('rentals')
-    .select('id, metadata, mineur:mineurs ( ip_address, port )')
+    .select('id, metadata, mineur:mineurs ( ip_address, port, metadata )')
     .eq('status', 'active')
     .lt('end_time', now)
 

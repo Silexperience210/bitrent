@@ -43,9 +43,10 @@ export default async function handler(req, res) {
       }
 
       try {
+        const publicUrl = rental.mineur?.metadata?.public_url || null
         const ownerPoolUrl = `stratum+tcp://${backup.stratumURL}:${backup.stratumPort}`
-        await setPool(ip, port, ownerPoolUrl, backup.stratumUser, backup.stratumPassword)
-        await restartMiner(ip, port)
+        await setPool(ip, port, ownerPoolUrl, backup.stratumUser, backup.stratumPassword, publicUrl)
+        await restartMiner(ip, port, publicUrl)
         results.restored_miners++
         console.log(`[expire-rentals] Miner ${ip} restored to owner config after rental ${rental.id}`)
       } catch (err) {

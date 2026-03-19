@@ -49,15 +49,17 @@ export default async function handler(req, res) {
 
         if (ip) {
           try {
+            const publicUrl = rental.mineur?.metadata?.public_url || null
+
             // 1. Save owner's current pool config so we can restore it after expiry
-            ownerConfigBackup = await getPoolConfig(ip, port)
+            ownerConfigBackup = await getPoolConfig(ip, port, publicUrl)
 
             // 2. Switch miner to rental pool + client's payout address
             const stratumUser = `${rental.metadata.payout_address}.bitrent`
-            await setPool(ip, port, rental.metadata.pool_url, stratumUser)
+            await setPool(ip, port, rental.metadata.pool_url, stratumUser, 'x', publicUrl)
 
             // 3. Restart miner to apply new config (~30s downtime, expected)
-            await restartMiner(ip, port)
+            await restartMiner(ip, port, publicUrl)
 
             activationOk = true
             console.log(`[rentals/status] Miner ${ip} activated for rental ${rental.id}`)

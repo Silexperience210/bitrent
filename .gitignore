@@ -62,6 +62,16 @@ temp/
 .git/
 desktop-shortcuts/
 
+# Binaries
+cloudflared.exe
+*.exe
+
+# Tunnel logs
+tunnel.log
+
+# Session/memory notes
+memory/
+
 # Documentation builds
 docs/.vuepress/dist/
 docs/.cache/

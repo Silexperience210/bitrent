@@ -91,6 +91,15 @@
   </div>
 </nav>
 
+<!-- Admin Secret Gate -->
+<div id="admin-secret-gate" style="display:none;position:fixed;inset:0;background:var(--bg0);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div style="font-size:1.4rem;font-weight:700">🔐 Admin Access</div>
+  <div style="color:var(--text-muted);font-size:0.9rem">Enter the admin secret to continue</div>
+  <input id="admin-secret-input" type="password" placeholder="Admin secret" class="input" style="width:280px;text-align:center" onkeydown="if(event.key==='Enter')submitAdminSecret()">
+  <button class="btn btn-primary" onclick="submitAdminSecret()">Unlock</button>
+  <div id="admin-secret-error" style="color:var(--red);font-size:0.85rem"></div>
+</div>
+
 <div class="page">
   <div class="container">
 
@@ -219,33 +228,42 @@ let minersCache = []
 
 /* ---- Init ---- */
 document.addEventListener('DOMContentLoaded', () => {
-  if (!Auth.requireAdmin()) return
+  if (!Auth.isLoggedIn()) { window.location.href = '/'; return }
+  if (!Auth.isAdmin()) {
+    document.getElementById('admin-secret-gate').style.display = 'flex'
+    return
+  }
   loadStats()
   loadMiners()
 })
 
+async function submitAdminSecret() {
+  const secret = document.getElementById('admin-secret-input').value.trim()
+  try {
+    const d = await api.post('/api/auth/verify?action=promote', { secret })
+    Auth.setSession(d.token, { ...Auth.getUser(), is_admin: true })
+    document.getElementById('admin-secret-gate').style.display = 'none'
+    loadStats()
+    loadMiners()
+  } catch {
+    document.getElementById('admin-secret-error').textContent = 'Secret incorrect.'
+  }
+}
+
 /* ============================================================
    Revenue Chart
    ============================================================ */
-function renderRevenueChart(monthlySats) {
+function renderRevenueChart(monthlySats, daily) {
   const chartEl = document.getElementById('rev-chart')
   if (!chartEl) return
 
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  const today = new Date().getDay()
-  const labels = []
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const bars = []
   for (let i = 6; i >= 0; i--) {
-    labels.push(days[(today - i + 7) % 7])
+    const d = new Date(); d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    bars.push({ day: dayNames[d.getDay()], sats: daily[key] || 0 })
   }
-
-  // Generate synthetic daily distribution from monthly total
-  // Weight slightly toward recent days for visual interest
-  const weights = [0.10, 0.12, 0.13, 0.14, 0.16, 0.17, 0.18]
-  const dailyTotal = Math.round((monthlySats || 0) / 30 * 7)
-  const bars = labels.map((d, i) => ({
-    day: d,
-    sats: Math.round(dailyTotal * weights[i])
-  }))
 
   const maxVal = Math.max(...bars.map(b => b.sats), 1)
   const grandTotal = bars.reduce((s, b) => s + b.sats, 0)
@@ -260,7 +278,7 @@ function renderRevenueChart(monthlySats) {
         <div class="rev-bar" style="height:${heightPct}%">
           <div class="rev-bar-tip">${b.sats.toLocaleString()} sats</div>
         </div>
-        <div class="rev-bar-label">${labels[i]}</div>
+        <div class="rev-bar-label">${b.day}</div>
       </div>`
   }).join('')
 }
@@ -308,7 +326,7 @@ async function loadStats() {
     document.getElementById('s-users').textContent = d.users?.total ?? '—'
     document.getElementById('s-rev').textContent = (d.revenue?.monthly_sats || 0).toLocaleString()
 
-    renderRevenueChart(d.revenue?.monthly_sats || 0)
+    renderRevenueChart(d.revenue?.monthly_sats || 0, d.revenue?.daily || {})
     renderFunnel(d)
 
     // Recent rentals table

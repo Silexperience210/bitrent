@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   const payload = token ? verify(token) : null
   if (!payload) return res.status(401).json({ error: 'Authentication required' })
 
-  const { miner_id, duration_minutes, pool_id, payout_address } = req.body || {}
+  const { miner_id, duration_minutes, pool_id, payout_address, worker_name } = req.body || {}
 
   // Validate inputs
   if (!miner_id || !duration_minutes || !pool_id || !payout_address) {
@@ -46,6 +46,8 @@ export default async function handler(req, res) {
   if (!isValidBitcoinAddress(payout_address)) {
     return res.status(400).json({ error: 'Invalid Bitcoin payout address' })
   }
+  // worker_name optional — alphanumeric + hyphens, max 32 chars
+  const workerName = worker_name ? worker_name.trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) : 'bitrent'
 
   // Get miner — must be online
   const { data: miner, error: minerErr } = await supabase
@@ -115,6 +117,7 @@ export default async function handler(req, res) {
         pool_name: POOLS[pool_id].name,
         pool_url: POOLS[pool_id].url,
         payout_address,
+        worker_name: workerName,
         invoice_expires_at: invoiceExpiresAt,
       },
     })
@@ -154,6 +157,7 @@ export default async function handler(req, res) {
     miner: { id: miner.id, name: miner.name },
     pool: POOLS[pool_id],
     payout_address,
+    worker_name: workerName,
     duration_minutes,
   })
 }

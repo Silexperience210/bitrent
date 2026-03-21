@@ -1,26 +1,20 @@
 import { supabase } from '../_lib/supabase.js'
-
-const BITAXE_API_TIMEOUT_MS = 5000
+import { getLiveStats as getBitaxeStats } from '../_lib/bitaxe.js'
+import { getLiveStats as getBraiinsStats } from '../_lib/braiins.js'
 
 async function checkMiner(miner) {
+  const ip        = miner.ip_address
+  const port      = miner.port || 80
+  const publicUrl = miner.metadata?.public_url || null
+  const api       = miner.metadata?.api || 'bitaxe'
+
   try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), BITAXE_API_TIMEOUT_MS)
-
-    const res = await fetch(`http://${miner.ip_address}:${miner.port || 80}/api/system/info`, {
-      signal: controller.signal,
-    })
-    clearTimeout(timer)
-
-    if (!res.ok) return { online: false }
-
-    const data = await res.json()
-    return {
-      online: true,
-      hashrate: data.hashRate,
-      temp: data.temp,
-      power: data.power,
-      uptime: data.uptimeSeconds,
+    if (api === 'braiins') {
+      const s = await getBraiinsStats(ip, port, publicUrl)
+      return { online: true, hashrate: s.hashrate, temp: s.temp, power: s.power }
+    } else {
+      const s = await getBitaxeStats(ip, port, publicUrl)
+      return { online: true, hashrate: s.hashrate, temp: s.temp, power: s.power, uptime: s.uptime ?? null }
     }
   } catch {
     return { online: false }

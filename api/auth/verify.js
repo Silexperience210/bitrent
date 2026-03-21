@@ -1,7 +1,7 @@
 import { supabase } from '../_lib/supabase.js'
 import { setCors } from '../_lib/cors.js'
 import { verifyAuthEvent } from '../_lib/nostr.js'
-import { sign } from '../_lib/jwt.js'
+import { sign, verify, fromHeader } from '../_lib/jwt.js'
 
 const ADMIN_PUBKEYS = new Set(
   (process.env.ADMIN_PUBKEYS || '').split(',').map(s => s.trim()).filter(Boolean)
@@ -9,6 +9,7 @@ const ADMIN_PUBKEYS = new Set(
 
 export default async function handler(req, res) {
   if (setCors(req, res)) return
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { event } = req.body || {}

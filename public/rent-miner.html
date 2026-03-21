@@ -606,7 +606,8 @@
                         miner_id: selectedMiner.id,
                         duration_minutes: duration,
                         pool_id: selectedPool,
-                        payout_address: payoutAddress
+                        payout_address: payoutAddress,
+                        worker_name: document.getElementById('worker-name').value.trim() || undefined
                     })
                 });
 
@@ -617,6 +618,14 @@
                     rental_id: data.rental_id,
                     invoice: data.invoice,
                     amount_sats: data.amount_sats,
+                    payout_address: data.payout_address,
+                    worker_name: data.worker_name,
+                    pool_url: data.pool?.url,
+                    pool_name: data.pool?.name,
+                    miner_name: data.miner?.name,
+                    duration_minutes: data.duration_minutes,
+                    total_cost_sats: data.amount_sats,
+                    base_cost_sats: data.amount_sats,
                 };
 
                 showPaymentScreen(data);

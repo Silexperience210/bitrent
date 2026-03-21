@@ -19,6 +19,7 @@ export default async function handler(req, res) {
     { count: totalUsers },
     { data: recentRentals },
     { data: revenue },
+    { count: completedRentals },
   ] = await Promise.all([
     supabase.from('mineurs').select('id', { count: 'exact', head: true }),
     supabase.from('mineurs').select('id', { count: 'exact', head: true }).eq('status', 'online'),
@@ -32,18 +33,33 @@ export default async function handler(req, res) {
       .limit(10),
     supabase
       .from('rentals')
-      .select('total_sats')
-      .eq('status', 'active')
+      .select('total_sats, created_at')
+      .in('status', ['active', 'completed'])
       .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    supabase
+      .from('rentals')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'completed'),
   ])
 
   const monthlyRevenue = (revenue || []).reduce((sum, r) => sum + (r.total_sats || 0), 0)
 
+  // Build daily sats for last 7 days
+  const daily = {}
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i)
+    daily[d.toISOString().slice(0, 10)] = 0
+  }
+  for (const r of revenue || []) {
+    const day = r.created_at.slice(0, 10)
+    if (day in daily) daily[day] += r.total_sats || 0
+  }
+
   return res.status(200).json({
     miners: { total: totalMiners || 0, online: onlineMiners || 0 },
-    rentals: { active: activeRentals || 0, pending: pendingRentals || 0 },
+    rentals: { active: activeRentals || 0, pending: pendingRentals || 0, completed: completedRentals || 0 },
     users: { total: totalUsers || 0 },
-    revenue: { monthly_sats: monthlyRevenue },
+    revenue: { monthly_sats: monthlyRevenue, daily },
     recent_rentals: (recentRentals || []).map(r => ({
       id: r.id,
       miner_name: r.mineur?.name,

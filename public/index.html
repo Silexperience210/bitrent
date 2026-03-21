@@ -377,7 +377,7 @@ function applyFilters() {
   if (filters.available) m = m.filter(x => x.available)
   if (filters.sort === 'price') m.sort((a, b) => a.sats_per_minute - b.sats_per_minute)
   else if (filters.sort === 'hashrate') m.sort((a, b) => b.hashrate_ths - a.hashrate_ths)
-  else if (filters.sort === 'efficiency') m.sort((a, b) => (a.sats_per_minute / a.hashrate_ths) - (b.sats_per_minute / b.hashrate_ths))
+  else if (filters.sort === 'efficiency') m.sort((a, b) => (b.hashrate_ths / b.sats_per_minute) - (a.hashrate_ths / a.sats_per_minute))
   renderMiners(m)
 }
 
@@ -451,14 +451,14 @@ function renderMiners(miners) {
     return
   }
 
-  // Compute efficiency range for normalization (lower eff ratio = better)
-  const efficiencies = miners.filter(m => m.available && m.hashrate_ths > 0).map(m => m.sats_per_minute / m.hashrate_ths)
-  const minEff = efficiencies.length ? Math.min(...efficiencies) : 1
+  // Compute TH/s per sat (higher = better deal)
+  const thsPerSats = miners.filter(m => m.available && m.hashrate_ths > 0 && m.sats_per_minute > 0).map(m => m.hashrate_ths / m.sats_per_minute)
+  const bestThsPerSat = thsPerSats.length ? Math.max(...thsPerSats) : 1
 
   g.innerHTML = miners.map(m => {
-    const eff = m.hashrate_ths > 0 ? m.sats_per_minute / m.hashrate_ths : 0
-    // Invert: lowest eff ratio (best) = 100% bar
-    const effPct = eff > 0 ? Math.round((minEff / eff) * 100) : 0
+    const thsPerSat = (m.hashrate_ths > 0 && m.sats_per_minute > 0) ? m.hashrate_ths / m.sats_per_minute : 0
+    const thsPerSatLabel = thsPerSat > 0 ? thsPerSat.toFixed(2) + ' TH/s per sat' : '—'
+    const effPct = thsPerSat > 0 ? Math.round((thsPerSat / bestThsPerSat) * 100) : 0
 
     const dur = minerDurations[m.id] || 15
     const totalSats = m.sats_per_minute * dur
@@ -489,8 +489,7 @@ function renderMiners(miners) {
       </div>
       ${m.available ? `
       <div class="efficiency-bar-wrap">
-        <div class="efficiency-bar-top"><span>Efficiency</span><span>${effPct}%</span></div>
-        <div class="efficiency-bar-bg"><div class="efficiency-bar-fill" style="width:${effPct}%"></div></div>
+        <div class="efficiency-bar-top"><span>Value</span><span>${thsPerSatLabel}</span></div>
       </div>
       <div class="dur-chips" id="dur-${esc(m.id)}">${durationChips}</div>
       <button class="btn btn-primary" style="width:100%" id="rent-btn-${esc(m.id)}" onclick="rentMiner('${esc(m.id)}')">
@@ -755,7 +754,7 @@ async function fetchLiveStats() {
     const d = await api.get(`/api/rentals/status?id=${rentalId}&live=1`)
     document.getElementById('cs-best-diff').textContent = formatDiff(d.bestSessionDiff)
     document.getElementById('cs-hash').textContent = d.hashrate > 0
-      ? (d.hashrate / 1e9).toFixed(2) + ' GH/s'
+      ? (d.hashrate / 1000).toFixed(2) + ' TH/s'
       : (selectedMiner?.hashrate_ths || '—') + ' TH/s'
     document.getElementById('cs-shares').textContent = d.sharesAccepted ?? '—'
     document.getElementById('cs-temp').textContent = d.temp ? d.temp + '°C' : '—'

@@ -1,5 +1,6 @@
 import { supabase } from '../_lib/supabase.js'
-import { setPool, restartMiner } from '../_lib/bitaxe.js'
+import * as bitaxeLib  from '../_lib/bitaxe.js'
+import * as braiinsLib from '../_lib/braiins.js'
 
 export default async function handler(req, res) {
   // Protect cron endpoint
@@ -37,16 +38,21 @@ export default async function handler(req, res) {
       const port = rental.mineur?.port || 80
       const backup = rental.metadata?.owner_config_backup
 
-      if (!ip || !backup?.stratumURL) {
+      if (!ip || !backup) {
         console.warn(`[expire-rentals] Rental ${rental.id}: no IP or no backup config — skipping restore`)
         continue
       }
 
       try {
         const publicUrl = rental.mineur?.metadata?.public_url || null
-        const ownerPoolUrl = `stratum+tcp://${backup.stratumURL}:${backup.stratumPort}`
-        await setPool(ip, port, ownerPoolUrl, backup.stratumUser, backup.stratumPassword, publicUrl)
-        await restartMiner(ip, port, publicUrl)
+        if (backup.braiins) {
+          await braiinsLib.restorePoolConfig(ip, port, backup, publicUrl)
+          await braiinsLib.restartMiner(ip, port, publicUrl)
+        } else if (backup.stratumURL) {
+          const ownerPoolUrl = `stratum+tcp://${backup.stratumURL}:${backup.stratumPort}`
+          await bitaxeLib.setPool(ip, port, ownerPoolUrl, backup.stratumUser, backup.stratumPassword, publicUrl)
+          await bitaxeLib.restartMiner(ip, port, publicUrl)
+        }
         results.restored_miners++
         console.log(`[expire-rentals] Miner ${ip} restored to owner config after rental ${rental.id}`)
       } catch (err) {

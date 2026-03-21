@@ -22,7 +22,7 @@ const ADMIN_PUBKEYS  = new Set(
 )
 
 function getHost(req) {
-  return process.env.NEXT_PUBLIC_BASE_URL ||
+  return (process.env.NEXT_PUBLIC_BASE_URL || '').trim() ||
     (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
     `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`
 }
@@ -178,8 +178,16 @@ async function handleStatus(req, res) {
     const rawKey = session.lnauth_key
     const pubkey = rawKey.length === 66 ? rawKey.slice(2) : rawKey
 
+    // Look up existing user first (don't overwrite role on login)
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id, pubkey_nostr, role')
+      .eq('pubkey_nostr', pubkey)
+      .single()
+
+    let isAdmin = ADMIN_PUBKEYS.has(pubkey) || existingUser?.role === 'admin'
+
     // First-run: if no admin exists yet, the first user to connect becomes admin
-    let isAdmin = ADMIN_PUBKEYS.has(pubkey)
     if (!isAdmin) {
       const { count } = await supabase
         .from('users')
@@ -188,10 +196,12 @@ async function handleStatus(req, res) {
       if (count === 0) isAdmin = true
     }
 
+    const role = isAdmin ? 'admin' : (existingUser?.role || 'user')
+
     const { data: user, error: upsertErr } = await supabase
       .from('users')
       .upsert(
-        { pubkey_nostr: pubkey, role: isAdmin ? 'admin' : 'user', updated_at: new Date().toISOString() },
+        { pubkey_nostr: pubkey, role, updated_at: new Date().toISOString() },
         { onConflict: 'pubkey_nostr' }
       )
       .select('id, pubkey_nostr, role')

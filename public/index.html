@@ -84,7 +84,7 @@
     <!-- Filter Bar -->
     <div class="filter-bar">
       <span class="filter-label">Filter</span>
-      <div class="filter-chip active" id="chip-available" onclick="toggleFilter('available')">Available only</div>
+      <div class="filter-chip" id="chip-available" onclick="toggleFilter('available')">Available only</div>
       <div class="filter-sep"></div>
       <span class="filter-label">Sort</span>
       <div class="filter-chip active" id="chip-price" onclick="setSort('price')">Price ↑</div>
@@ -319,7 +319,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 let selectedMiner = null, selectedMins = 15, rentalId = null, pollTimer = null, isPollPending = false
-let allMiners = [], filters = { available: true, sort: 'price' }
+let allMiners = [], filters = { available: false, sort: 'price' }
 const minersMap = new Map()
 let minerDurations = {}
 let activeRental = null, cockpitInterval = null

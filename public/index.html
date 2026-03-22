@@ -495,9 +495,28 @@ function renderMiners(miners) {
       <button class="btn btn-primary" style="width:100%" id="rent-btn-${esc(m.id)}" onclick="rentMiner('${esc(m.id)}')">
         ⚡ Rent — <span id="price-${esc(m.id)}">${totalSats.toLocaleString()} sats</span>
       </button>
-      ` : `<button class="btn btn-ghost" style="width:100%" disabled>Currently Occupied</button>`}
+      ` : `<div class="rental-countdown" id="cd-${esc(m.id)}">${m.rental_end_time ? '⏳ …' : '🔒 En location'}</div>
+       <button class="btn btn-ghost" style="width:100%;margin-top:8px" disabled>Currently Occupied</button>`}
     </div>`
   }).join('')
+
+  // Start countdowns for rented miners
+  miners.filter(m => !m.available && m.rental_end_time).forEach(m => startCountdown(`cd-${m.id}`, m.rental_end_time))
+}
+
+function startCountdown(elementId, endTimeStr) {
+  function tick() {
+    const el = document.getElementById(elementId)
+    if (!el) return
+    const remaining = new Date(endTimeStr).getTime() - Date.now()
+    if (remaining <= 0) { el.textContent = '✅ Disponible bientôt'; return }
+    const h = Math.floor(remaining / 3600000)
+    const m = Math.floor((remaining % 3600000) / 60000)
+    const s = Math.floor((remaining % 60000) / 1000)
+    el.textContent = `🔒 Libre dans ${h > 0 ? h + 'h ' : ''}${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`
+    setTimeout(tick, 1000)
+  }
+  tick()
 }
 
 // ─── Card Duration Chip ───────────────────────────────────────────────────────

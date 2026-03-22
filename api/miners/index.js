@@ -27,14 +27,16 @@ export default async function handler(req, res) {
   const minerIds = (data || []).map(m => m.id)
   let activeRentalMinerIds = new Set()
 
+  let activeRentalMap = new Map()
+
   if (minerIds.length > 0) {
     const { data: activeRentals } = await supabase
       .from('rentals')
-      .select('mineur_id')
+      .select('mineur_id, end_time')
       .in('mineur_id', minerIds)
       .eq('status', 'active')
 
-    activeRentalMinerIds = new Set((activeRentals || []).map(r => r.mineur_id))
+    activeRentalMap = new Map((activeRentals || []).map(r => [r.mineur_id, r.end_time]))
   }
 
   const miners = (data || []).map(m => ({
@@ -44,7 +46,8 @@ export default async function handler(req, res) {
     sats_per_minute: m.sats_per_minute,
     sats_per_hour: m.sats_per_minute * 60,
     status: m.status,
-    available: m.status === 'online' && !activeRentalMinerIds.has(m.id),
+    available: m.status === 'online' && !activeRentalMap.has(m.id),
+    rental_end_time: activeRentalMap.get(m.id) || null,
     uptime_percentage: parseFloat(m.uptime_percentage || 0).toFixed(1),
     last_checked: m.last_checked,
     model: m.metadata?.model || 'Bitaxe',

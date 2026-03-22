@@ -89,6 +89,8 @@
             padding: 15px;
             cursor: pointer;
             transition: border-color 0.2s;
+            position: relative;
+            overflow: hidden;
         }
 
         .miner-option:hover {
@@ -103,6 +105,46 @@
         .miner-option h3 {
             color: #00d4ff;
             margin-bottom: 10px;
+        }
+
+        .miner-option.rented {
+            cursor: not-allowed;
+            opacity: 0.75;
+            border-color: #3d2020;
+        }
+
+        .miner-option.rented h3 {
+            color: #7a8a9a;
+        }
+
+        .miner-option.rented::after {
+            content: 'LOUÉ';
+            position: absolute;
+            top: 14px;
+            right: -14px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            padding: 4px 28px;
+            transform: rotate(35deg);
+            transform-origin: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        .rental-countdown {
+            margin-top: 10px;
+            padding: 5px 8px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #ef4444;
+            text-align: center;
+            font-family: monospace;
+            letter-spacing: 0.5px;
         }
 
         .miner-stat {
@@ -457,7 +499,7 @@
 
         async function loadMiners() {
             try {
-                const res = await fetch(`${API_URL}/mineurs?_t=${Date.now()}`, {
+                const res = await fetch(`${API_URL}/miners?status=all&_t=${Date.now()}`, {
                     headers: {
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
                         'Pragma': 'no-cache',
@@ -465,38 +507,81 @@
                     }
                 });
                 const data = await res.json();
-                miners = data.data || [];
+                // Keep only online miners (available or rented), skip truly offline ones
+                miners = (data.miners || []).filter(m => m.status === 'online');
 
+                const rentedMiners = [];
                 let html = '';
+
                 miners.forEach(miner => {
-                    const isOnline = miner.status === 'online';
-                    html += `
-                        <div class="miner-option ${isOnline ? '' : 'disabled'}"
-                             onclick="${isOnline ? `selectMiner('${miner.id}')` : ''}"
-                             style="opacity: ${isOnline ? 1 : 0.5}; cursor: ${isOnline ? 'pointer' : 'not-allowed'};">
-                            <h3>${miner.name}</h3>
-                            <div class="miner-stat">
-                                <span class="miner-stat-label">Hashrate:</span>
-                                <span>${(miner.hashrate_specs || '--')} TH/s</span>
+                    const isAvailable = miner.available;
+
+                    if (!isAvailable) {
+                        const cdId = `cd-${miner.id}`;
+                        rentedMiners.push({ id: cdId, end_time: miner.rental_end_time });
+                        html += `
+                            <div class="miner-option rented">
+                                <h3>${miner.name}</h3>
+                                <div class="miner-stat">
+                                    <span class="miner-stat-label">Hashrate:</span>
+                                    <span>${miner.hashrate_ths || '--'} TH/s</span>
+                                </div>
+                                <div class="miner-stat">
+                                    <span class="miner-stat-label">Prix:</span>
+                                    <span>${miner.sats_per_minute || '--'} sats/min</span>
+                                </div>
+                                <div class="miner-stat">
+                                    <span class="miner-stat-label">Uptime:</span>
+                                    <span>${miner.uptime_percentage}%</span>
+                                </div>
+                                <div class="rental-countdown" id="${cdId}">⏳ …</div>
                             </div>
-                            <div class="miner-stat">
-                                <span class="miner-stat-label">Price:</span>
-                                <span>${(miner.sats_per_minute || '--')} sats/min</span>
+                        `;
+                    } else {
+                        html += `
+                            <div class="miner-option" onclick="selectMiner('${miner.id}')">
+                                <h3>${miner.name}</h3>
+                                <div class="miner-stat">
+                                    <span class="miner-stat-label">Hashrate:</span>
+                                    <span>${miner.hashrate_ths || '--'} TH/s</span>
+                                </div>
+                                <div class="miner-stat">
+                                    <span class="miner-stat-label">Prix:</span>
+                                    <span>${miner.sats_per_minute || '--'} sats/min</span>
+                                </div>
+                                <div class="miner-stat">
+                                    <span class="miner-stat-label">Uptime:</span>
+                                    <span style="color:#10b981;">${miner.uptime_percentage}%</span>
+                                </div>
                             </div>
-                            <div class="miner-stat">
-                                <span class="miner-stat-label">Status:</span>
-                                <span style="color: ${isOnline ? '#10b981' : '#ef4444'};">
-                                    ${miner.status || 'offline'}
-                                </span>
-                            </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 });
 
                 document.getElementById('miners-list').innerHTML = html;
+
+                // Start countdowns after DOM is updated
+                rentedMiners.forEach(({ id, end_time }) => startCountdown(id, end_time));
+
             } catch (error) {
                 showStatus('Failed to load miners: ' + error.message, 'error');
             }
+        }
+
+        function startCountdown(elementId, endTimeStr) {
+            function tick() {
+                const el = document.getElementById(elementId);
+                if (!el) return;
+                if (!endTimeStr) { el.textContent = '🔒 En location'; return; }
+                const remaining = new Date(endTimeStr).getTime() - Date.now();
+                if (remaining <= 0) { el.textContent = '✅ Disponible bientôt'; return; }
+                const h = Math.floor(remaining / 3600000);
+                const m = Math.floor((remaining % 3600000) / 60000);
+                const s = Math.floor((remaining % 60000) / 1000);
+                el.textContent = `🔒 Libre dans ${h > 0 ? h + 'h ' : ''}${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+                setTimeout(tick, 1000);
+            }
+            tick();
         }
 
         function selectMiner(minerId) {
@@ -556,7 +641,7 @@
             if (!selectedMiner) return;
 
             const duration = parseInt(document.getElementById('duration').value) || 60;
-            const pricePerMin = selectedMiner.price_per_minute || 500;
+            const pricePerMin = selectedMiner.sats_per_minute || 500;
             const baseCost = pricePerMin * duration;
             
             let poolFee = 0;

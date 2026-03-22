@@ -383,20 +383,36 @@
         }
 
         async function loadMiners() {
-            const result = await apiCall('/mineurs');
-            if (!result || !result.data) return;
+            const token = localStorage.getItem('bitrent_token');
+            const result = await apiCall('/admin/miners', token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+            if (!result || !result.miners) {
+                document.getElementById('miners-list').innerHTML = '<p style="padding:20px;color:#a0aec0;">Accès admin requis — connectez-vous d\'abord.</p>';
+                return;
+            }
 
-            let html = '<table><thead><tr><th>Name</th><th>IP</th><th>Hashrate</th><th>Price/min</th><th>Status</th></tr></thead><tbody>';
-            
-            result.data.forEach(miner => {
+            let html = '<table><thead><tr><th>Name</th><th>IP</th><th>Hashrate</th><th>Price/min</th><th>Status</th><th>Fin location</th></tr></thead><tbody>';
+
+            result.miners.forEach(miner => {
                 const statusClass = `status-${miner.status}`;
+
+                let endCell = '<span style="color:#4a5568;">—</span>';
+                if (miner.currently_rented && miner.rental_end_time) {
+                    const d = new Date(miner.rental_end_time);
+                    const days = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+                    const day = days[d.getDay()];
+                    const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+                    const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    endCell = `<span style="color:#f59e0b;font-weight:bold;">🔒 ${timeStr} · ${day} ${dateStr}</span>`;
+                }
+
                 html += `
                     <tr>
                         <td>${miner.name}</td>
                         <td>${miner.ip_address || 'N/A'}</td>
-                        <td>${miner.hashrate || '-'} TH/s</td>
-                        <td>${miner.price_per_minute || '-'} sats/min</td>
+                        <td>${parseFloat(miner.hashrate_specs || 0).toFixed(1)} TH/s</td>
+                        <td>${miner.sats_per_minute || '-'} sats/min</td>
                         <td><span class="status-badge ${statusClass}">${miner.status}</span></td>
+                        <td>${endCell}</td>
                     </tr>
                 `;
             });

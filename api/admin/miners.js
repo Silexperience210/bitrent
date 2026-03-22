@@ -31,14 +31,18 @@ export default async function handler(req, res) {
     const ids = (data || []).map(m => m.id)
     const { data: activeRentals } = await supabase
       .from('rentals')
-      .select('mineur_id')
+      .select('mineur_id, end_time')
       .in('mineur_id', ids)
       .eq('status', 'active')
 
-    const activeMinerIds = new Set((activeRentals || []).map(r => r.mineur_id))
+    const activeRentalMap = new Map((activeRentals || []).map(r => [r.mineur_id, r.end_time]))
 
     return res.status(200).json({
-      miners: (data || []).map(m => ({ ...m, currently_rented: activeMinerIds.has(m.id) })),
+      miners: (data || []).map(m => ({
+        ...m,
+        currently_rented: activeRentalMap.has(m.id),
+        rental_end_time: activeRentalMap.get(m.id) || null,
+      })),
     })
   }
 

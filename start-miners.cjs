@@ -294,13 +294,13 @@ async function setBraiinsPool(base, poolUrl, stratumUser, stratumPassword = 'x')
   await braiinsGql(base, `mutation {
     bosminer { config { ... on BosminerConfigurator { group(id: "${groupId}") {
       ... on GroupConfigurator { addPool(enabled: true, url: "${u}", user: "${s}", password: "${p}") { __typename } }
-    } } } }
+    } } } } }
   `)
   for (const pool of currentPools) {
     await braiinsGql(base, `mutation {
       bosminer { config { ... on BosminerConfigurator { group(id: "${groupId}") {
         ... on GroupConfigurator { removePool(id: ${pool.id}) { __typename } }
-      } } } }
+      } } } } }
     `)
   }
 }

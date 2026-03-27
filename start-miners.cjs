@@ -406,16 +406,14 @@ function startTunnel(name, targetUrl, onUrl) {
     'tunnel', '--url', targetUrl, '--no-autoupdate'
   ], { cwd: DIR })
 
-  let resolved = false
+  let lastUrl = null
   const handler = (data) => {
     const text = data.toString()
-    if (!resolved) {
-      const url = extractUrl(text)
-      if (url) {
-        resolved = true
-        log(`[tunnel] ${name} URL: ${url}`)
-        onUrl(url)
-      }
+    const url = extractUrl(text)
+    if (url && url !== lastUrl) {
+      lastUrl = url
+      log(`[tunnel] ${name} URL: ${url}`)
+      onUrl(url)
     }
   }
 

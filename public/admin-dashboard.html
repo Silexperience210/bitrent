@@ -615,6 +615,23 @@
             loadRentals();
         }
 
+        // Absorb `#token=...` from URL hash on first load (e.g. coming from Umbrel tile)
+        // Hash fragments are never sent to the server, so the token doesn't leak in logs.
+        (function absorbHashToken() {
+            const h = window.location.hash || '';
+            const m = h.match(/[#&]token=([^&]+)/);
+            if (m && m[1]) {
+                try {
+                    const tok = decodeURIComponent(m[1]);
+                    if (tok && tok.split('.').length === 3) {  // basic JWT shape check
+                        localStorage.setItem('bitrent_token', tok);
+                        // Scrub the URL so the token doesn't sit in the address bar / history
+                        history.replaceState(null, '', window.location.pathname + window.location.search);
+                    }
+                } catch {}
+            }
+        })();
+
         // Initial load
         window.addEventListener('load', async () => {
             renderTokenStatus();

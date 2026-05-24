@@ -49,15 +49,18 @@ export default async function handler(req, res) {
   // worker_name optional — alphanumeric + hyphens, max 32 chars
   const workerName = worker_name ? worker_name.trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) : 'bitrent'
 
-  // Get miner — must be online
+  // Get miner — must be online and not admin-disabled
   const { data: miner, error: minerErr } = await supabase
     .from('mineurs')
-    .select('id, name, sats_per_minute, status, ip_address, port')
+    .select('id, name, sats_per_minute, status, ip_address, port, metadata')
     .eq('id', miner_id)
     .single()
 
   if (minerErr || !miner) return res.status(404).json({ error: 'Miner not found' })
   if (miner.status !== 'online') return res.status(409).json({ error: 'Miner is offline' })
+  if (miner.metadata?.disabled === true) {
+    return res.status(409).json({ error: 'Miner temporarily disabled by admin' })
+  }
 
   // Check no overlapping active rental
   const { count: overlap } = await supabase

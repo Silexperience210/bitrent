@@ -39,7 +39,10 @@ export default async function handler(req, res) {
     activeRentalMap = new Map((activeRentals || []).map(r => [r.mineur_id, r.end_time]))
   }
 
-  const miners = (data || []).map(m => ({
+  // Hide admin-disabled miners from public marketplace
+  const visible = (data || []).filter(m => !m.metadata?.disabled)
+
+  const miners = visible.map(m => ({
     id: m.id,
     name: m.name,
     hashrate_ths: parseFloat(m.hashrate_specs),

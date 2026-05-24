@@ -130,6 +130,43 @@
             color: #f59e0b;
         }
 
+        .status-disabled {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+            margin-left: 6px;
+        }
+
+        button.danger {
+            background: #ef4444;
+            color: #fff;
+        }
+        button.danger:hover { background: #dc2626; }
+
+        .token-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #1a2332;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .token-bar input {
+            flex: 1;
+            background: #0f1419;
+            border: 1px solid #2a3f5f;
+            color: #e0e6ed;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .token-bar input:focus { outline: none; border-color: #00d4ff; }
+        .token-bar button { padding: 8px 14px; font-size: 12px; }
+        .token-bar #token-status { color: #a0aec0; font-size: 12px; min-width: 130px; }
+
         .button-group {
             display: flex;
             gap: 10px;
@@ -249,6 +286,14 @@
             </div>
         </div>
 
+        <!-- Auth token bar -->
+        <div class="token-bar">
+            <span id="token-status">● non authentifié</span>
+            <input type="password" id="token-input" placeholder="Collez votre JWT admin (récupéré via /admin.html après connexion)">
+            <button onclick="saveTokenFromInput()">Charger</button>
+            <button class="secondary" onclick="document.getElementById('token-input').type = document.getElementById('token-input').type === 'password' ? 'text' : 'password'">👁</button>
+        </div>
+
         <div id="message"></div>
 
         <!-- Stats -->
@@ -319,41 +364,69 @@
                     <input type="number" id="miner-price" placeholder="500" required>
                 </div>
                 <div class="form-group">
-                    <label>Status</label>
-                    <select id="miner-status">
-                        <option value="online">Online</option>
-                        <option value="offline">Offline</option>
-                        <option value="maintenance">Maintenance</option>
+                    <label>Modèle</label>
+                    <input type="text" id="miner-model" placeholder="ex: Bitaxe 601 / S19" value="Bitaxe">
+                </div>
+                <div class="form-group">
+                    <label>API du miner</label>
+                    <select id="miner-api">
+                        <option value="bitaxe">Bitaxe (AxeOS / PATCH /api/system)</option>
+                        <option value="braiins">Braiins OS (GraphQL /graphql)</option>
                     </select>
                 </div>
                 <div class="button-group">
-                    <button type="submit">✅ Add Miner</button>
-                    <button type="button" class="secondary" onclick="closeAddMinerModal()">❌ Cancel</button>
+                    <button type="submit">✅ Ajouter</button>
+                    <button type="button" class="secondary" onclick="closeAddMinerModal()">❌ Annuler</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://workspace-omega-opal.vercel.app/api';
+        // Same-origin: this page is served by Vercel at bitrent.vercel.app, API is at /api/*
+        const API_URL = '/api';
+
+        function getToken() { return localStorage.getItem('bitrent_token') || ''; }
+        function setToken(t) {
+            if (t) localStorage.setItem('bitrent_token', t);
+            else localStorage.removeItem('bitrent_token');
+            renderTokenStatus();
+        }
+        function renderTokenStatus() {
+            const t = getToken();
+            const el = document.getElementById('token-status');
+            if (!el) return;
+            if (t) {
+                el.innerHTML = '<span style="color:#10b981">● token chargé</span> <button onclick="clearToken()" style="background:transparent;color:#a0aec0;font-size:11px;padding:2px 6px;">effacer</button>';
+            } else {
+                el.innerHTML = '<span style="color:#ef4444">● non authentifié</span>';
+            }
+        }
+        function clearToken() { setToken(null); showMessage('Token effacé', 'success'); }
 
         async function apiCall(endpoint, options = {}) {
             try {
-                const response = await fetch(`${API_URL}${endpoint}?_t=${Date.now()}`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                        'Expires': '0',
-                        ...options.headers
-                    },
-                    ...options
-                });
-                return await response.json();
+                const token = getToken();
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...options.headers,
+                };
+                const url = `${API_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+                const response = await fetch(url, { ...options, headers });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showMessage(`HTTP ${response.status}: ${data.error || 'request failed'}`, 'error');
+                    return { __error: data.error || response.statusText, __status: response.status };
+                }
+                return data;
             } catch (error) {
                 console.error('API Error:', error);
-                showMessage(`Error: ${error.message}`, 'error');
-                return null;
+                showMessage(`Network error: ${error.message}`, 'error');
+                return { __error: error.message };
             }
         }
 
@@ -366,34 +439,35 @@
         }
 
         async function loadStats() {
-            const miners = await apiCall('/mineurs');
-            const rentals = await apiCall('/rentals');
-
-            if (miners && miners.data) {
-                document.getElementById('stat-miners').textContent = miners.data.length;
-                const online = miners.data.filter(m => m.status === 'online').length;
+            // Pull from /api/admin/miners (authed) for full visibility incl. disabled
+            const adminResult = await apiCall('/admin/miners');
+            if (adminResult && adminResult.miners) {
+                document.getElementById('stat-miners').textContent = adminResult.miners.length;
+                const online = adminResult.miners.filter(m => m.status === 'online' && !m.metadata?.disabled).length;
                 document.getElementById('stat-online').textContent = online;
+                const activeRentals = adminResult.miners.filter(m => m.currently_rented).length;
+                document.getElementById('stat-rentals').textContent = activeRentals;
             }
-
-            if (rentals && rentals.data) {
-                document.getElementById('stat-rentals').textContent = rentals.data.length;
-            }
-
             updateLastUpdate();
         }
 
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
         async function loadMiners() {
-            const token = localStorage.getItem('bitrent_token');
-            const result = await apiCall('/admin/miners', token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+            const result = await apiCall('/admin/miners');
             if (!result || !result.miners) {
-                document.getElementById('miners-list').innerHTML = '<p style="padding:20px;color:#a0aec0;">Accès admin requis — connectez-vous d\'abord.</p>';
+                document.getElementById('miners-list').innerHTML = '<p style="padding:20px;color:#a0aec0;">Accès admin requis — collez votre token JWT en haut de page.</p>';
                 return;
             }
 
-            let html = '<table><thead><tr><th>Name</th><th>IP</th><th>Hashrate</th><th>Price/min</th><th>Status</th><th>Fin location</th></tr></thead><tbody>';
+            let html = '<table><thead><tr><th>Nom</th><th>IP</th><th>Hashrate</th><th>Prix/min</th><th>Statut</th><th>Fin location</th><th>Actions</th></tr></thead><tbody>';
 
             result.miners.forEach(miner => {
-                const statusClass = `status-${miner.status}`;
+                const disabled = miner.metadata?.disabled === true;
+                let statusBadge = `<span class="status-badge status-${miner.status}">${escapeHtml(miner.status)}</span>`;
+                if (disabled) statusBadge += ' <span class="status-badge status-disabled">désactivé</span>';
 
                 let endCell = '<span style="color:#4a5568;">—</span>';
                 if (miner.currently_rented && miner.rental_end_time) {
@@ -405,20 +479,62 @@
                     endCell = `<span style="color:#f59e0b;font-weight:bold;">🔒 ${timeStr} · ${day} ${dateStr}</span>`;
                 }
 
+                const toggleLabel = disabled ? '✅ Réactiver' : '⏸ Désactiver';
+                const toggleClass = disabled ? '' : 'secondary';
+
                 html += `
                     <tr>
-                        <td>${miner.name}</td>
-                        <td>${miner.ip_address || 'N/A'}</td>
+                        <td>${escapeHtml(miner.name)}</td>
+                        <td><code style="color:#a0aec0;font-size:12px">${escapeHtml(miner.ip_address || 'N/A')}</code></td>
                         <td>${parseFloat(miner.hashrate_specs || 0).toFixed(1)} TH/s</td>
                         <td>${miner.sats_per_minute || '-'} sats/min</td>
-                        <td><span class="status-badge ${statusClass}">${miner.status}</span></td>
+                        <td>${statusBadge}</td>
                         <td>${endCell}</td>
+                        <td style="white-space:nowrap;">
+                            <button class="${toggleClass}" style="padding:6px 10px;font-size:12px;" onclick="toggleDisabled('${miner.id}', ${disabled})">${toggleLabel}</button>
+                            <button class="danger" style="padding:6px 10px;font-size:12px;background:#ef4444;color:#fff;" onclick="deleteMiner('${miner.id}', '${escapeHtml(miner.name)}', ${miner.currently_rented ? 'true' : 'false'})">🗑</button>
+                        </td>
                     </tr>
                 `;
             });
 
             html += '</tbody></table>';
             document.getElementById('miners-list').innerHTML = html;
+        }
+
+        async function toggleDisabled(minerId, currentlyDisabled) {
+            const newState = !currentlyDisabled;
+            const action = newState ? 'désactiver' : 'réactiver';
+            if (!confirm(`Confirmer : ${action} ce mineur ?`)) return;
+
+            // Fetch current metadata to merge
+            const all = await apiCall('/admin/miners');
+            const miner = all?.miners?.find(m => m.id === minerId);
+            const newMeta = { ...(miner?.metadata || {}), disabled: newState };
+
+            const result = await apiCall(`/admin/miners?id=${encodeURIComponent(minerId)}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ metadata: newMeta }),
+            });
+            if (result && !result.__error) {
+                showMessage(`✅ Mineur ${action === 'désactiver' ? 'désactivé' : 'réactivé'}`, 'success');
+                await loadMiners();
+                await loadStats();
+            }
+        }
+
+        async function deleteMiner(minerId, name, currentlyRented) {
+            if (currentlyRented) {
+                showMessage(`Impossible : ${name} a une location active. Désactive-le à la place.`, 'error');
+                return;
+            }
+            if (!confirm(`Supprimer DÉFINITIVEMENT le mineur "${name}" ?\n\nCette action est irréversible.`)) return;
+            const result = await apiCall(`/admin/miners?id=${encodeURIComponent(minerId)}`, { method: 'DELETE' });
+            if (result && !result.__error) {
+                showMessage(`✅ Mineur ${name} supprimé`, 'success');
+                await loadMiners();
+                await loadStats();
+            }
         }
 
         async function loadRentals() {
@@ -458,19 +574,28 @@
 
         async function submitAddMiner(event) {
             event.preventDefault();
-            
+
             const minerData = {
-                name: document.getElementById('miner-name').value,
-                ip_address: document.getElementById('miner-ip').value,
+                name: document.getElementById('miner-name').value.trim(),
+                ip_address: document.getElementById('miner-ip').value.trim(),
                 hashrate_specs: parseFloat(document.getElementById('miner-hashrate').value),
-                sats_per_minute: parseInt(document.getElementById('miner-price').value),
-                status: document.getElementById('miner-status').value
+                sats_per_minute: parseInt(document.getElementById('miner-price').value, 10),
+                metadata: {
+                    model: document.getElementById('miner-model')?.value || 'Bitaxe',
+                    api: document.getElementById('miner-api')?.value || 'bitaxe',
+                },
             };
 
-            // This would need a POST endpoint - for now just show success
-            showMessage('✅ Miner added successfully!', 'success');
+            const result = await apiCall('/admin/miners', {
+                method: 'POST',
+                body: JSON.stringify(minerData),
+            });
+            if (!result || result.__error) return;  // apiCall already showed error
+            showMessage(`✅ Mineur "${result.miner.name}" ajouté`, 'success');
             closeAddMinerModal();
+            event.target.reset();
             await loadMiners();
+            await loadStats();
         }
 
         function updateLastUpdate() {
@@ -479,8 +604,20 @@
                 `Last update: ${now.toLocaleTimeString()}`;
         }
 
+        function saveTokenFromInput() {
+            const v = document.getElementById('token-input').value.trim();
+            if (!v) { showMessage('Token vide', 'error'); return; }
+            setToken(v);
+            document.getElementById('token-input').value = '';
+            showMessage('Token chargé — rechargement des données', 'success');
+            loadStats();
+            loadMiners();
+            loadRentals();
+        }
+
         // Initial load
         window.addEventListener('load', async () => {
+            renderTokenStatus();
             await loadStats();
             await loadMiners();
             await loadRentals();

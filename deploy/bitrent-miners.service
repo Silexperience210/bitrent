@@ -1,0 +1,30 @@
+[Unit]
+Description=BitRent — tunnel manager + rental activation daemon
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=umbrel
+Group=umbrel
+WorkingDirectory=/home/umbrel/bitrent
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /home/umbrel/bitrent/start-miners.cjs
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bitrent-miners
+
+# Graceful shutdown: send SIGTERM, give 15s, then SIGKILL
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

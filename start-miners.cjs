@@ -1,27 +1,29 @@
 /**
- * start-miners.js — BitRent tunnel manager
- * - Starts hex-proxy (strips CF headers for Hex Bitaxe)
- * - Starts cloudflared tunnels for Octaxe + Hex
- * - Detects tunnel URLs and updates Supabase automatically
- * - Sends alerts if miners become unreachable
+ * start-miners.cjs — BitRent tunnel manager (portable Windows + Linux/systemd)
+ * - Starts cloudflared tunnel for S19 Single board (Braiins)
+ * - Detects tunnel URL and updates Supabase automatically
+ * - Sends alerts if miner becomes unreachable
  *
- * Usage: node start-miners.js
- * Auto-start: installed via Task Scheduler (run setup-autostart.ps1)
+ * Usage: node start-miners.cjs
+ * Windows: auto-start via Task Scheduler (run setup-autostart.ps1)
+ * Linux:   auto-start via systemd unit (see deploy/bitrent-miners.service)
+ *
+ * Env vars (in .env.local):
+ *   SUPABASE_URL, SUPABASE_SERVICE_KEY  — required
+ *   BRAIINS_IP                          — optional (default 192.168.1.83)
+ *   CLOUDFLARED_BIN                     — optional (default: cloudflared.exe on Win, cloudflared on Linux)
  */
 
 const { spawn, execSync } = require('child_process')
 const path      = require('path')
 const fs        = require('fs')
 
+// ── Platform detection ────────────────────────────────────────────────────────
+const isWindows = process.platform === 'win32'
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const DIR             = __dirname
-const CLOUDFLARED     = path.join(DIR, 'cloudflared.exe')
-const HEX_PROXY       = path.join(DIR, 'hex-proxy.cjs')
 const LOG_FILE        = path.join(DIR, 'tunnel.log')
-
-const OCTAXE_IP       = '192.168.1.166'
-const HEX_PROXY_PORT  = 8142
-const BRAIINS_IP      = '192.168.1.83'
 const CHECK_INTERVAL  = 5 * 60 * 1000  // 5 min health check
 
 // ── Load .env.local ───────────────────────────────────────────────────────────
@@ -29,7 +31,7 @@ const envFile = path.join(DIR, '.env.local')
 if (fs.existsSync(envFile)) {
   const raw = fs.readFileSync(envFile, 'utf8')
   for (const line of raw.split('\n')) {
-    const m = line.match(/^([A-Z_]+)="?([^"]*)"?\s*$/)
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)="?([^"]*)"?\s*$/)
     if (m) {
       let val = m[2].trim()
       // Remove trailing literal \n (char 92 + 110) written by Vercel env pull
@@ -43,14 +45,19 @@ if (fs.existsSync(envFile)) {
 
 const SUPABASE_URL    = process.env.SUPABASE_URL
 const SUPABASE_KEY    = process.env.SUPABASE_SERVICE_KEY
+const BRAIINS_IP      = process.env.BRAIINS_IP || '192.168.1.83'
+const CLOUDFLARED     = process.env.CLOUDFLARED_BIN ||
+                        (isWindows ? path.join(DIR, 'cloudflared.exe') : 'cloudflared')
 
-// ── Kill existing cloudflared + proxy on startup ──────────────────────────────
+// ── Kill existing cloudflared on startup ──────────────────────────────────────
+// Win:  taskkill /F /IM cloudflared.exe
+// Linux: pkill -f cloudflared (systemd will manage child lifecycle anyway)
 try {
-  execSync('taskkill /F /IM cloudflared.exe', { stdio: 'ignore' })
-} catch {}
-try {
-  // Kill node processes on port 8142
-  execSync(`for /f "tokens=5" %a in ('netstat -ano ^| find ":${HEX_PROXY_PORT}"') do taskkill /F /PID %a`, { shell: 'cmd', stdio: 'ignore' })
+  if (isWindows) {
+    execSync('taskkill /F /IM cloudflared.exe', { stdio: 'ignore' })
+  } else {
+    execSync('pkill -f cloudflared', { stdio: 'ignore' })
+  }
 } catch {}
 
 // ── Logging ───────────────────────────────────────────────────────────────────
@@ -399,12 +406,33 @@ async function activatePendingRentals() {
   }
 }
 
+// ── Tracked subprocesses & intervals for graceful shutdown ────────────────────
+const childProcs = new Set()
+const intervals  = []
+let isShuttingDown = false
+
+function trackInterval(id) { intervals.push(id); return id }
+
+function shutdown(signal) {
+  if (isShuttingDown) return
+  isShuttingDown = true
+  log(`[shutdown] ${signal} received — cleaning up`)
+  for (const id of intervals) clearInterval(id)
+  for (const p of childProcs) { try { p.kill('SIGTERM') } catch {} }
+  // Give children a moment to exit cleanly, then force-exit
+  setTimeout(() => process.exit(0), 2000).unref()
+}
+process.on('SIGINT',  () => shutdown('SIGINT'))
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+
 // ── Start a cloudflared tunnel ────────────────────────────────────────────────
 function startTunnel(name, targetUrl, onUrl) {
+  if (isShuttingDown) return
   log(`[tunnel] Starting ${name} → ${targetUrl}`)
   const proc = spawn(CLOUDFLARED, [
     'tunnel', '--url', targetUrl, '--no-autoupdate'
   ], { cwd: DIR })
+  childProcs.add(proc)
 
   let lastUrl = null
   const handler = (data) => {
@@ -420,8 +448,15 @@ function startTunnel(name, targetUrl, onUrl) {
   proc.stdout.on('data', handler)
   proc.stderr.on('data', handler)
   proc.on('exit', (code) => {
+    childProcs.delete(proc)
+    if (isShuttingDown) return
     log(`[tunnel] ${name} exited (${code}) — restarting in 10s`)
-    setTimeout(() => startTunnel(name, targetUrl, onUrl), 10000)
+    setTimeout(() => startTunnel(name, targetUrl, onUrl), 10000).unref()
+  })
+  proc.on('error', (err) => {
+    log(`[tunnel] ${name} spawn error: ${err.message} — retry 10s`)
+    childProcs.delete(proc)
+    setTimeout(() => startTunnel(name, targetUrl, onUrl), 10000).unref()
   })
 
   return proc
@@ -429,58 +464,30 @@ function startTunnel(name, targetUrl, onUrl) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  log(`=== BitRent Tunnel Manager starting — ${new Date().toISOString()} ===`)
+  log(`=== BitRent Tunnel Manager starting — ${new Date().toISOString()} (${process.platform}) ===`)
 
-  // 1. Start Hex proxy
-  log('[proxy] Starting hex-proxy on port ' + HEX_PROXY_PORT)
-  const proxy = spawn(process.execPath, [HEX_PROXY], { cwd: DIR })
-  proxy.stdout.on('data', d => log('[proxy] ' + d.toString().trim()))
-  proxy.stderr.on('data', d => log('[proxy] ' + d.toString().trim()))
-  proxy.on('exit', (code) => {
-    log(`[proxy] Exited (${code}) — restarting in 5s`)
-    setTimeout(() => spawn(process.execPath, [HEX_PROXY], { cwd: DIR }), 5000)
-  })
-
-  await new Promise(r => setTimeout(r, 2000)) // wait for proxy to start
-
-  // 2. Start tunnels
+  // 1. Start tunnels
   const urls = {}
-
-  startTunnel('Octaxe', `http://${OCTAXE_IP}:80`, async (url) => {
-    urls.octaxe = url
-    await updateSupabase('Octaxe', url)
-  })
-
-  await new Promise(r => setTimeout(r, 3000)) // stagger tunnel starts
-
-  startTunnel('Hex', `http://localhost:${HEX_PROXY_PORT}`, async (url) => {
-    urls.hex = url
-    await updateSupabase('Hex', url)
-  })
-
-  await new Promise(r => setTimeout(r, 3000)) // stagger
 
   startTunnel('S19 Single board', `http://${BRAIINS_IP}:80`, async (url) => {
     urls.braiins = url
     await updateSupabase('S19 Single board', url)
   })
 
-  // 3. Periodic health checks
-  setInterval(async () => {
-    if (urls.octaxe) await checkMiner('Octaxe', urls.octaxe, 'bitaxe')
-    if (urls.hex)    await checkMiner('Hex',    urls.hex,    'bitaxe')
+  // 2. Periodic health checks
+  trackInterval(setInterval(async () => {
     if (urls.braiins) await checkMiner('S19 Single board', urls.braiins, 'braiins')
-  }, CHECK_INTERVAL)
+  }, CHECK_INTERVAL))
 
-  // 4. Auto-expire: check every 60s, run once immediately on startup
-  setInterval(checkExpiredRentals, 60_000)
+  // 3. Auto-expire: check every 60s, run once immediately on startup
+  trackInterval(setInterval(checkExpiredRentals, 60_000))
   await checkExpiredRentals()
 
-  // 5. Activate paid rentals locally (Vercel can't reach miners via trycloudflare)
-  setInterval(activatePendingRentals, 30_000)
+  // 4. Activate paid rentals locally (Vercel can't reach miners via trycloudflare)
+  trackInterval(setInterval(activatePendingRentals, 30_000))
   await activatePendingRentals()
 
-  log('[ready] Tunnel manager running. Ctrl+C to stop.')
+  log('[ready] Tunnel manager running. Send SIGTERM to stop cleanly.')
 }
 
 main().catch(err => {

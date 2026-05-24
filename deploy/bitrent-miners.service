@@ -9,7 +9,7 @@ User=umbrel
 Group=umbrel
 WorkingDirectory=/home/umbrel/bitrent
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node /home/umbrel/bitrent/start-miners.cjs
+ExecStart=/usr/local/bin/node /home/umbrel/bitrent/start-miners.cjs
 Restart=always
 RestartSec=10
 StandardOutput=journal

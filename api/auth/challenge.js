@@ -52,12 +52,23 @@ export default async function handler(req, res) {
   const challenge = crypto.randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS).toISOString()
 
-  const { error } = await supabase.from('challenges').insert({
+  let { error } = await supabase.from('challenges').insert({
     challenge,
     pubkey_nostr: pubkey,
     expires_at: expiresAt,
     ip_address: clientIp,
   })
+
+  // Tolérance schéma pré-006 : si la colonne ip_address n'existe pas encore en
+  // base (migration 006 non appliquée), on insère sans — le login ne doit jamais
+  // casser pour du rate-limiting best-effort. Appliquer 006 reste le vrai fix.
+  if (error && /ip_address/i.test(error.message || '')) {
+    ;({ error } = await supabase.from('challenges').insert({
+      challenge,
+      pubkey_nostr: pubkey,
+      expires_at: expiresAt,
+    }))
+  }
 
   if (error) {
     console.error('[challenge] DB error:', error.message)
